@@ -16325,7 +16325,7 @@ BrickShatterEnvData:
 
 ;-------------------------------------------------------------------------------------
 ;INTERRUPT VECTORS
-
+      .PAD $FFFA
       .dw NonMaskableInterrupt
       .dw Start
       .dw $fff0  ;unused
