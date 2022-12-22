@@ -71,8 +71,10 @@ ChkContinue:  ldy DemoTimer               ;if timer for demo has expired, reset 
               lda ContinueWorld           ;load previously saved world number for secret
               jsr GoContinue              ;continue function when pressing A + start
 StartWorld1:  jsr LoadAreaPointer
+            .IFNDEF TWEAK_UNCONDITIONAL_1UP
               inc Hidden1UpFlag           ;set 1-up box flag for both players
               inc OffScr_Hidden1UpFlag
+            .ENDIF
               inc FetchNewGameTimerFlag   ;set fetch new game timer flag
               inc OperMode                ;set next game mode
               lda WorldSelectEnableFlag   ;if world select flag is on, then primary

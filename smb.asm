@@ -1756,7 +1756,11 @@ RunAObj:  lda $00                    ;get stored value and add offset to it
       .dw QuestionBlock     ;power-up
       .dw QuestionBlock     ;coin
       .dw QuestionBlock     ;hidden, coin
-      .dw Hidden1UpBlock    ;hidden, 1-up
+.IFDEF TWEAK_UNCONDITIONAL_1UP
+      .dw BrickWithItem     ;hidden, 1-up, unconditional
+.ELSE
+      .dw Hidden1UpBlock    ;hidden, 1-up   
+.ENDIF
       .dw BrickWithItem     ;brick, power-up
       .dw BrickWithItem     ;brick, vine
       .dw BrickWithItem     ;brick, star
@@ -2424,12 +2428,14 @@ Jumpspring:
 ;--------------------------------
 ;$07 - used to save ID of brick object
 
+.IFNDEF TWEAK_UNCONDITIONAL_1UP
 Hidden1UpBlock:
       lda Hidden1UpFlag  ;if flag not set, do not render object
       beq ExitDecBlock
       lda #$00           ;if set, init for the next one
       sta Hidden1UpFlag
       jmp BrickWithItem  ;jump to code shared with unbreakable bricks
+.ENDIF
 
 QuestionBlock:
       jsr GetAreaObjectID ;get value from level decoder routine
@@ -3188,8 +3194,10 @@ NoFPObj:     inc GameEngineSubroutine ;increment to next routine (this may
 
 ;-------------------------------------------------------------------------------------
 
+.IFNDEF TWEAK_UNCONDITIONAL_1UP
 Hidden1UpCoinAmts:
       .db $15, $23, $16, $1b, $17, $18, $23, $63
+.ENDIF
 
 PlayerEndLevel:
           lda #$01                  ;force player to walk to the right
@@ -3219,10 +3227,12 @@ RdyNextA: lda StarFlagTaskControl
           cmp #$03                  ;check to see if we have yet reached level -4
           bne NextArea              ;and skip this last part here if not
           ldy WorldNumber           ;get world number as offset
+      .IFNDEF TWEAK_UNCONDITIONAL_1UP
           lda CoinTallyFor1Ups      ;check third area coin tally for bonus 1-ups
           cmp Hidden1UpCoinAmts,y   ;against minimum value, if player has not collected
           bcc NextArea              ;at least this number of coins, leave flag clear
           inc Hidden1UpFlag         ;otherwise set hidden 1-up box control flag
+      .ENDIF
 NextArea: inc AreaNumber            ;increment area number used for address loader
           jsr LoadAreaPointer       ;get new level pointer
           inc FetchNewGameTimerFlag ;set flag to load new game timer
@@ -4195,7 +4205,9 @@ JCoinC: lda #$fb
         sta Square2SoundQueue  ;load coin grab sound
         stx ObjectOffset       ;store current control bit as misc object offset 
         jsr GiveOneCoin        ;update coin tally on the screen and coin amount variable
+      .IFNDEF TWEAK_UNCONDITIONAL_1UP
         inc CoinTallyFor1Ups   ;increment coin tally used to activate 1-up block flag
+      .ENDIF
         rts
 
 FindEmptyMiscSlot:
@@ -9329,7 +9341,9 @@ AreaChangeTimerData:
 
 HandleCoinMetatile:
       jsr ErACM             ;do sub to erase coin metatile from block buffer
+.IFNDEF TWEAK_UNCONDITIONAL_1UP
       inc CoinTallyFor1Ups  ;increment coin tally used for 1-up blocks
+.ENDIF
       jmp GiveOneCoin       ;update coin amount and tally on the screen
 
 HandleAxeMetatile:
@@ -9523,7 +9537,9 @@ GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
          sta AreaNumber            ;initialize area number used for area address offset
          sta LevelNumber           ;initialize level number used for world display
          sta AltEntranceControl    ;initialize mode of entry
+      .IFNDEF TWEAK_UNCONDITIONAL_1UP
          inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
+      .ENDIF
          inc FetchNewGameTimerFlag ;set flag to load new game timer
 ExPipeE: rts                       ;leave!!!
 
