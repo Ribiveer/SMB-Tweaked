@@ -1238,8 +1238,10 @@ WriteBlankMT: jsr PutBlockMetatile     ;do a sub to write blank metatile to vram
 
 ReplaceBlockMetatile:
        jsr WriteBlockMetatile    ;write metatile to vram buffer to replace block object
+      .IFNDEF TWEAK_REMOVE_UNUSED_SPACE
        inc Block_ResidualCounter ;increment unused counter (residual code)
        dec Block_RepFlag,x       ;decrement flag (residual code)
+      .ENDIF
        rts                       ;leave
 
 DestroyBlockMetatile:
@@ -1725,8 +1727,10 @@ ISpr0Loop:   lda Sprite0Data,y
              sta Sprite_Data,y
              dey
              bpl ISpr0Loop
+            .IFNDEF TWEAK_REMOVE_UNUSED_SPACE
              jsr DoNothing2            ;these jsrs doesn't do anything useful
              jsr DoNothing1
+            .ENDIF
              inc Sprite0HitDetectFlag  ;set sprite #0 check flag
              inc OperMode_Task         ;increment to next task
              rts
@@ -1950,7 +1954,9 @@ TerminateGame:
       lda WorldNumber       ;otherwise put world number of current
       sta ContinueWorld     ;player into secret continue function variable
       lda #$00
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
       asl                   ;residual ASL instruction
+.ENDIF
       sta OperMode_Task     ;reset all modes to title screen and
       sta ScreenTimer       ;leave
       sta OperMode
@@ -1992,13 +1998,13 @@ TransLoop: lda OnscreenPlayerInfo,x    ;transpose the information
 ExTrans:   rts
 
 ;-------------------------------------------------------------------------------------
-
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
 DoNothing1:
       lda #$ff       ;this is residual code, this value is
       sta $06c9      ;not used anywhere in the program
 DoNothing2:
       rts
-
+.ENDIF
 ;-------------------------------------------------------------------------------------
 
 AreaParserTaskHandler:
@@ -3239,10 +3245,10 @@ GetBlockBufferAddr:
       rts
 
 ;-------------------------------------------------------------------------------------
-
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
 ;unused space
       .db $ff, $ff
-
+.ENDIF
 ;-------------------------------------------------------------------------------------
 
 AreaDataOfsLoopback:
@@ -3354,8 +3360,10 @@ StoreStyle: sta AreaStyle
 ;-------------------------------------------------------------------------------------
 .INCLUDE "level-data.asm"
 ;-------------------------------------------------------------------------------------
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
 ;unused space
       .db $ff
+.ENDIF
 ;-------------------------------------------------------------------------------------
 
 ;indirect jump routine called when
@@ -9140,10 +9148,10 @@ TooFar:   jsr EraseEnemyObject    ;erase object if necessary
 ExScrnBd: rts                     ;leave
 
 ;-------------------------------------------------------------------------------------
-
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
 ;some unused space
       .db $ff, $ff, $ff
-
+.ENDIF
 ;-------------------------------------------------------------------------------------
 ;$01 - enemy buffer offset
 
@@ -11180,10 +11188,10 @@ RetYC: and #%00001111              ;and mask out high nybble
        rts                         ;and leave
 
 ;-------------------------------------------------------------------------------------
-
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
 ;unused byte
       .db $ff
-
+.ENDIF
 ;-------------------------------------------------------------------------------------
 ;$00 - offset to vine Y coordinate adder
 ;$02 - offset to sprite data
@@ -13064,10 +13072,10 @@ SetHFAt: ora $04                    ;add other OAM attributes if necessary
          rts
 
 ;-------------------------------------------------------------------------------------
-
+.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
 ;unused space
         .db $ff, $ff, $ff, $ff, $ff, $ff
-
+.ENDIF
 ;-------------------------------------------------------------------------------------
 
 .INCLUDE "sound-engine.asm"
