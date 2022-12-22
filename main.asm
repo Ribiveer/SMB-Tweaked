@@ -14,8 +14,6 @@ INESMIR 1
 
 .INCLUDE "smb.asm"
 
-.INCLUDE "music-data.asm"
-
 ;INTERRUPT VECTORS
       .PAD $FFFA
       .dw NonMaskableInterrupt
