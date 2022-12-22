@@ -3111,9 +3111,16 @@ InitChangeSize:
           bne ExitBoth              ;then branch to leave
           sty PlayerAnimCtrl        ;otherwise initialize player's animation frame control
           inc PlayerChangeSizeFlag  ;set growing/shrinking flag
+      .IFDEF TWEAK_MODERN_POWERUP
+          lda PlayerStatus          ;load the player status 0 = small, 1 = super, 2 = fire
+          bne ICSBig                ;if we're big, y = 0
+          iny                       ;otherwise, y = 1
+ICSBig:   sty PlayerSize            ;store the wanted player size
+      .ELSE
           lda PlayerSize
           eor #$01                  ;invert player's size
           sta PlayerSize
+      .ENDIF
 ExitBoth: rts                       ;leave
 
 ;-------------------------------------------------------------------------------------
@@ -8406,13 +8413,28 @@ HandlePowerUpCollision:
       rts
 
 Shroom_Flower_PUp:
+.IFDEF TWEAK_MODERN_POWERUP
+      ldx PowerUpType         ;load the power-up type
+      beq UpToSuper           ;if mushroom, branch
+      inx                     ;otherwise get our preferred player status: 2
+      cpx PlayerStatus        ;if that's already our status, leave.
+      beq NoPUp
+      stx PlayerStatus
+      lda PlayerSize
+      beq SkipChangeSize
+      jsr InitChangeSize      ;change size (unconditional, is that okay?)
+SkipChangeSize:
+      jsr GetPlayerColors     ;run sub to change colors of player
+      lda #$0c
+      jmp UpToFiery
+.ELSE
       lda PlayerStatus    ;if player status = small, branch
       beq UpToSuper
       cmp #$01            ;if player status not super, leave
       bne NoPUp
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
       ldx ObjectOffset    ;get enemy offset, not necessary
-.ENDIF
+      .ENDIF
       lda #$02            ;set player status to fiery
       sta PlayerStatus
       jsr GetPlayerColors ;run sub to change colors of player
@@ -8421,6 +8443,7 @@ Shroom_Flower_PUp:
 .ENDIF
       lda #$0c            ;set value to be used by subroutine tree (fiery)
       jmp UpToFiery       ;jump to set values accordingly
+.ENDIF
 
 SetFor1Up:
       lda #$0b                 ;change 1000 points into 1-up instead
@@ -8433,12 +8456,10 @@ UpToSuper:
        lda #$09         ;set value to be used by subroutine tree (super)
 
 UpToFiery:
-      .IFDEF TWEAK_FIX_POWERUP_JUMP
-       jsr SetKRout
-      .ELSE
+      .IFNDEF TWEAK_FIX_POWERUP_JUMP
        ldy #$00         ;set value to be used as new player state
-       jsr SetPRout     ;set values to stop certain things in motion
       .ENDIF
+       jsr SetPRout     ;set values to stop certain things in motion
 
 NoPUp: rts
 
@@ -8566,6 +8587,23 @@ InjurePlayer:
       bne ExInjColRoutines     ;at zero, and branch to leave if so
 
 ForceInjury:
+      .IFDEF TWEAK_MODERN_DAMAGE
+          ldx PlayerStatus          ;check player's status
+          beq KillPlayer            ;branch if small
+          lda #$08
+          sta InjuryTimer           ;set injured invincibility timer
+          asl
+          sta Square1SoundQueue     ;play pipedown/injury sound
+          dec PlayerStatus          ;otherwise, decrement player status
+          cpx #$01                  ;if the player status was 1
+          beq NoColorChange         ;skip changing color.
+          jsr GetPlayerColors       ;change player's palette if necessary
+          lda #$0c
+          bne SetKRout:
+NoColorChange:
+          ;IF PLAYERSTATUS WAS 1 / IS 0
+          lda #$0a                  ;set subroutine to run on next frame
+      .ELSE
           ldx PlayerStatus          ;check player's status
           beq KillPlayer            ;branch if small
           sta PlayerStatus          ;otherwise set player's status to small
@@ -8575,9 +8613,16 @@ ForceInjury:
           sta Square1SoundQueue     ;play pipedown/injury sound
           jsr GetPlayerColors       ;change player's palette if necessary
           lda #$0a                  ;set subroutine to run on next frame
+      .ENDIF
+.IFDEF TWEAK_FIX_POWERUP_JUMP
+SetKRout:
+SetPRout: sta GameEngineSubroutine  ;load new value to run subroutine on next frame
+.ELSE
 SetKRout: ldy #$01                  ;set new player state
 SetPRout: sta GameEngineSubroutine  ;load new value to run subroutine on next frame
           sty Player_State          ;store new player state
+.ENDIF
+
           ldy #$ff
           sty TimerControl          ;set master timer control flag to halt timers
           iny
