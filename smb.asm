@@ -588,6 +588,19 @@ EndExitTwo:    rts                        ;leave
 
 ;-------------------------------------------------------------------------------------
 
+.IFDEF TWEAK_FIX_LIVES
+AddLife:
+            lda #Sfx_ExtraLife
+            sta Square2SoundQueue        ;play 1-up sound
+            lda NumberofLives
+            cmp #$62                     ;if player has 99 lives
+            beq HitLiveCap               ;Do not increment live counter
+            inc NumberofLives            ;give player one extra life (1-up)
+HitLiveCap: rts
+.ENDIF
+
+;-------------------------------------------------------------------------------------
+
 ScreenRoutines:
       lda ScreenRoutineTask        ;run one of the following subroutines
       jsr JumpEngine
@@ -913,11 +926,21 @@ EndGameText:   lda #$00                 ;put null terminator at end
                lda NumberofLives        ;otherwise, check number of lives
                clc                      ;and increment by one for display
                adc #$01
+            .IFDEF TWEAK_FIX_LIVES
+               ldy #$00
+LivesLoop:     cmp #10                  ;more than 9 lives in y?
+               bcc PutLives
+               sbc #10                  ;if so, subtract 10 and
+               iny                      ;increment the left digit
+               sty VRAM_Buffer1+7  
+               bne LivesLoop 
+            .ELSE
                cmp #10                  ;more than 9 lives?
                bcc PutLives
                sbc #10                  ;if so, subtract 10 and put a crown tile
                ldy #$9f                 ;next to the difference...strange things happen if
                sty VRAM_Buffer1+7       ;the number of lives exceeds 19
+            .ENDIF
 PutLives:      sta VRAM_Buffer1+8
                ldy WorldNumber          ;write world and level numbers (incremented for display)
                iny                      ;to the buffer in the spaces surrounding the dash
@@ -5143,9 +5166,13 @@ GiveOneCoin:
       bne CoinPoints         ;if not, skip all of this
       lda #$00
       sta CoinTally          ;otherwise, reinitialize coin amount
+    .IFDEF TWEAK_FIX_LIVES
+      jsr AddLife
+    .ELSE
       inc NumberofLives      ;give the player an extra life
       lda #Sfx_ExtraLife
       sta Square2SoundQueue  ;play 1-up sound
+    .ENDIF
 
 CoinPoints:
       lda #$02               ;set digit modifier to award

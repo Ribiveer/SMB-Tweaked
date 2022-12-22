@@ -38,9 +38,13 @@ DecNumTimer:  dec FloateyNum_Timer,x       ;decrement value here
               bne ChkTallEnemy
               cpy #$0b                     ;check offset for $0b
               bne LoadNumTiles             ;branch ahead if not found
+            .IFDEF TWEAK_FIX_LIVES
+              jsr AddLife
+            .ELSE  
               inc NumberofLives            ;give player one extra life (1-up)
               lda #Sfx_ExtraLife
               sta Square2SoundQueue        ;and play the 1-up sound
+            .ENDIF
 LoadNumTiles: lda ScoreUpdateData,y        ;load point value here
               lsr                          ;move high nybble to low
               lsr
