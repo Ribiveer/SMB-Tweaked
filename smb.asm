@@ -8433,8 +8433,13 @@ UpToSuper:
        lda #$09         ;set value to be used by subroutine tree (super)
 
 UpToFiery:
+      .IFDEF TWEAK_FIX_POWERUP_JUMP
+       jsr SetKRout
+      .ELSE
        ldy #$00         ;set value to be used as new player state
        jsr SetPRout     ;set values to stop certain things in motion
+      .ENDIF
+
 NoPUp: rts
 
 ;--------------------------------
@@ -9328,6 +9333,10 @@ FlagpoleCollision:
       beq PutPlayerOnVine       ;if running, branch to end of climbing code
       lda #$01
       sta PlayerFacingDir       ;set player's facing direction to right
+      .IFDEF TWEAK_FIX_STAR_FLAGPOLE
+      lsr                       ;a = 0
+      sta StarInvincibleTimer   ;clear star timer
+      .ENDIF
       inc ScrollLock            ;set scroll lock flag
       lda GameEngineSubroutine
       cmp #$04                  ;check for flagpole slide routine running
