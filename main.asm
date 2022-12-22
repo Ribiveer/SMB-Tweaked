@@ -1,6 +1,8 @@
 ;Original disassembly by doppelganger (doppelheathen@gmail.com)
 ;edited by Ribiveer (smbasm@ribiveer.com)
 
+TWEAK_SMB_DELUXE_LUIGI_PALETTE EQU 1
+
 INESPRG 2
 INESCHR 1
 INESMAP 0

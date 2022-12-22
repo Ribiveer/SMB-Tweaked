@@ -658,9 +658,16 @@ BackgroundColors:
       .db $0f, $22, $0f, $0f ;used by background color control if set
 
 PlayerColors:
+.IFDEF TWEAK_SMB_DELUXE_LUIGI_PALETTE
+      .db $22, $16, $27, $18 ;mario's colors
+      .db $22, $1a, $27, $18 ;luigi's colors
+      .db $22, $37, $27, $16 ;fiery mario
+      .db $22, $30, $27, $19 ;fiery luigi
+.ELSE
       .db $22, $16, $27, $18 ;mario's colors
       .db $22, $30, $27, $19 ;luigi's colors
       .db $22, $37, $27, $16 ;fiery (used by both)
+.ENDIF
 
 GetBackgroundColor:
            ldy BackgroundColorCtrl   ;check background color control
@@ -671,6 +678,14 @@ NoBGColor: inc ScreenRoutineTask     ;increment to next subtask and plod on thro
       
 GetPlayerColors:
                ldx VRAM_Buffer1_Offset  ;get current buffer offset
+            .IFDEF TWEAK_SMB_DELUXE_LUIGI_PALETTE
+               lda PlayerStatus         ;check player status
+               and #$02                 ;we only care if the player is firey, which is in bit 1.
+               ora CurrentPlayer        ;add the current player in bit 0.
+               asl                      ;shift to the left twice, to multiply by 4, the amount of colours in the palette...
+               asl
+               tay                      ;... and we get our table offset to put in the Y register!
+            .ELSE
                ldy #$00
                lda CurrentPlayer        ;check which player is on the screen
                beq ChkFiery
@@ -679,6 +694,7 @@ ChkFiery:      lda PlayerStatus         ;check player status
                cmp #$02
                bne StartClrGet          ;if fiery, load alternate offset for fiery player
                ldy #$08
+            .ENDIF
 StartClrGet:   lda #$03                 ;do four colors
                sta $00
 ClrGetLoop:    lda PlayerColors,y       ;fetch player colors and store them
