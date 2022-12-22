@@ -3085,7 +3085,11 @@ PlayerChangeSize:
              lda TimerControl    ;check master timer control
              cmp #$f8            ;for specific moment in time
              bne EndChgSize      ;branch if before or after that point
+      .IFDEF TWEAK_SMALL_OPTIMISATIONS
+             beq InitChangeSize  ;otherwise run code to get growing/shrinking going
+      .ELSE
              jmp InitChangeSize  ;otherwise run code to get growing/shrinking going
+      .ENDIF
 EndChgSize:  cmp #$c4            ;check again for another specific moment
              bne ExitChgSize     ;and branch to leave if before or after that point
              jsr DonePlayerTask  ;otherwise do sub to init timer control and set routine
@@ -8406,11 +8410,15 @@ Shroom_Flower_PUp:
       beq UpToSuper
       cmp #$01            ;if player status not super, leave
       bne NoPUp
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
       ldx ObjectOffset    ;get enemy offset, not necessary
+.ENDIF
       lda #$02            ;set player status to fiery
       sta PlayerStatus
       jsr GetPlayerColors ;run sub to change colors of player
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
       ldx ObjectOffset    ;get enemy offset again, and again not necessary
+.ENDIF
       lda #$0c            ;set value to be used by subroutine tree (fiery)
       jmp UpToFiery       ;jump to set values accordingly
 
@@ -10240,7 +10248,7 @@ RetYC: and #%00001111              ;and mask out high nybble
        rts                         ;and leave
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ;unused byte
       .db $ff
 .ENDIF

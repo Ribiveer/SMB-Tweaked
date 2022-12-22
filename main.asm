@@ -1,8 +1,8 @@
 ;Original disassembly by doppelganger (doppelheathen@gmail.com)
 ;edited by Ribiveer (smbasm@ribiveer.com)
 
-TWEAK_REMOVE_UNUSED_SPACE EQU 1
 TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS EQU 1
+TWEAK_SMALL_OPTIMISATIONS EQU 1
 TWEAK_SMB_DELUXE_LUIGI_PALETTE EQU 1
 TWEAK_FIX_LIVES EQU 1
 
