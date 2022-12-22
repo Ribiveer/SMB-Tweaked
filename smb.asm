@@ -7963,50 +7963,63 @@ GetVAdder: sta $02                    ;store result here
 
 ;--------------------------------
 
-PRandomSubtracter:
-      .db $f8, $a0, $70, $bd, $00
+.IFDEF TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS
+      MoveFlyingCheepCheep:             ;Plomp the PAL Cheep Cheep code here, muhahahah!
+            ldy #$20
+            lda Enemy_State,x          ;check cheep-cheep's enemy state
+            and #%00100000             ;for d5 set
+            bne FlyCC
+            jsr MoveEnemyHorizontally
+            ldy #$17
 
-FlyCCBPriority:
-      .db $20, $20, $20, $00, $00
+      FlyCC: lda #$05
+            jmp SetXMoveAmt
+.ELSE
+      PRandomSubtracter:
+            .db $f8, $a0, $70, $bd, $00
 
-MoveFlyingCheepCheep:
-        lda Enemy_State,x          ;check cheep-cheep's enemy state
-        and #%00100000             ;for d5 set
-        beq FlyCC                  ;branch to continue code if not set
-        lda #$00
-        sta Enemy_SprAttrib,x      ;otherwise clear sprite attributes
-        jmp MoveJ_EnemyVertically  ;and jump to move defeated cheep-cheep downwards
-FlyCC:  jsr MoveEnemyHorizontally  ;move cheep-cheep horizontally based on speed and force
-        ldy #$0d                   ;set vertical movement amount
-        lda #$05                   ;set maximum speed
-        jsr SetXMoveAmt            ;branch to impose gravity on flying cheep-cheep
-        lda Enemy_Y_MoveForce,x
-        lsr                        ;get vertical movement force and
-        lsr                        ;move high nybble to low
-        lsr
-        lsr
-        tay                        ;save as offset (note this tends to go into reach of code)
-        lda Enemy_Y_Position,x     ;get vertical position
-        sec                        ;subtract pseudorandom value based on offset from position
-        sbc PRandomSubtracter,y
-        bpl AddCCF                  ;if result within top half of screen, skip this part
-        eor #$ff
-        clc                        ;otherwise get two's compliment
-        adc #$01
-AddCCF: cmp #$08                   ;if result or two's compliment greater than eight,
-        bcs BPGet                  ;skip to the end without changing movement force
-        lda Enemy_Y_MoveForce,x
-        clc
-        adc #$10                   ;otherwise add to it
-        sta Enemy_Y_MoveForce,x
-        lsr                        ;move high nybble to low again
-        lsr
-        lsr
-        lsr
-        tay
-BPGet:  lda FlyCCBPriority,y       ;load bg priority data and store (this is very likely
-        sta Enemy_SprAttrib,x      ;broken or residual code, value is overwritten before
-        rts                        ;drawing it next frame), then leave
+      FlyCCBPriority:
+            .db $20, $20, $20, $00, $00
+
+      MoveFlyingCheepCheep:
+            lda Enemy_State,x          ;check cheep-cheep's enemy state
+            and #%00100000             ;for d5 set
+            beq FlyCC                  ;branch to continue code if not set
+            lda #$00
+            sta Enemy_SprAttrib,x      ;otherwise clear sprite attributes
+            jmp MoveJ_EnemyVertically  ;and jump to move defeated cheep-cheep downwards
+      FlyCC:  jsr MoveEnemyHorizontally  ;move cheep-cheep horizontally based on speed and force
+            ldy #$0d                   ;set vertical movement amount
+            lda #$05                   ;set maximum speed
+            jsr SetXMoveAmt            ;branch to impose gravity on flying cheep-cheep
+            lda Enemy_Y_MoveForce,x
+            lsr                        ;get vertical movement force and
+            lsr                        ;move high nybble to low
+            lsr
+            lsr
+            tay                        ;save as offset (note this tends to go into reach of code)
+            lda Enemy_Y_Position,x     ;get vertical position
+            sec                        ;subtract pseudorandom value based on offset from position
+            sbc PRandomSubtracter,y
+            bpl AddCCF                  ;if result within top half of screen, skip this part
+            eor #$ff
+            clc                        ;otherwise get two's compliment
+            adc #$01
+      AddCCF: cmp #$08                   ;if result or two's compliment greater than eight,
+            bcs BPGet                  ;skip to the end without changing movement force
+            lda Enemy_Y_MoveForce,x
+            clc
+            adc #$10                   ;otherwise add to it
+            sta Enemy_Y_MoveForce,x
+            lsr                        ;move high nybble to low again
+            lsr
+            lsr
+            lsr
+            tay
+      BPGet:  lda FlyCCBPriority,y       ;load bg priority data and store (this is very likely
+            sta Enemy_SprAttrib,x      ;broken or residual code, value is overwritten before
+            rts                        ;drawing it next frame), then leave
+.ENDIF
 
 ;--------------------------------
 ;$00 - used to hold horizontal difference
