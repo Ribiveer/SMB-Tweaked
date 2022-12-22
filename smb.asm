@@ -1113,10 +1113,20 @@ SkipByte:     dey
 MusicSelectData:
       .db WaterMusic, GroundMusic, UndergroundMusic, CastleMusic
       .db CloudMusic, PipeIntroMusic
+.IFDEF TWEAK_TITLE_MUSIC
+      .db CloudMusic | WaterMusic
+.ENDIF
 
 GetAreaMusic:
-             lda OperMode           ;if in title screen mode, leave
-             beq ExitGetM
+             lda OperMode           ;load mode
+      .IFDEF TWEAK_TITLE_MUSIC
+             bne NotTitle
+             ldy #$06
+             bne StoreMusic
+NotTitle:
+      .ELSE
+             beq ExitGetM           ;if title screen mode, leave
+      .ENDIF
              lda AltEntranceControl ;check for specific alternate mode of entry
              cmp #$02               ;if found, branch without checking starting position
              beq ChkAreaType        ;from area object data header
@@ -1231,9 +1241,13 @@ PlayerLoseLife:
              inc DisableScreenFlag    ;disable screen and sprite 0 check
              lda #$00
              sta Sprite0HitDetectFlag
+      .IFDEF TWEAK_TITLE_MUSIC
+             lda OperMode             ;if we're in the title screen
+             beq NoDeathSil           ;don't pause the music for death
+      .ENDIF
              lda #Silence             ;silence music
              sta EventMusicQueue
-             dec NumberofLives        ;take one life from player
+NoDeathSil:  dec NumberofLives        ;take one life from player
              bpl StillInGame          ;if player still has lives, branch
              lda #$00
              sta OperMode_Task        ;initialize mode task,

@@ -1,8 +1,10 @@
 SoundEngine:
+        .IFNDEF TWEAK_TITLE_MUSIC
          lda OperMode              ;are we in title screen mode?
          bne SndOn
          sta SND_MASTERCTRL_REG    ;if so, disable sound and leave
          rts
+        .ENDIF
 SndOn:   lda #$ff
          sta JOYPAD_PORT2          ;disable irqs and set frame counter mode???
          lda #$0f
@@ -54,10 +56,14 @@ SkipPIn: lda #$00                  ;clear pause sfx buffer
          beq SkipSoundSubroutines
 
 RunSoundSubroutines:
+        .IFDEF TWEAK_TITLE_MUSIC
+         lda OperMode
+         beq NoSFX
+        .ENDIF
          jsr Square1SfxHandler  ;play sfx on square channel 1
          jsr Square2SfxHandler  ; ''  ''  '' square channel 2
          jsr NoiseSfxHandler    ; ''  ''  '' noise channel
-         jsr MusicHandler       ;play music on all channels
+NoSFX:   jsr MusicHandler       ;play music on all channels
          lda #$00               ;clear the music queues
          sta AreaMusicQueue
          sta EventMusicQueue
@@ -659,6 +665,10 @@ HandleSquare2Music:
         bne Squ2LengthHandler    ;otherwise it is length data
 
 EndOfMusicData:
+.IFDEF TWEAK_TITLE_MUSIC
+        lda OperMode             ;if on the title screen
+        beq NoLoop               ;do not loop
+.ENDIF
         lda EventMusicBuffer     ;check secondary buffer for time running out music
         cmp #TimeRunningOutMusic
         bne NotTRO
@@ -669,7 +679,7 @@ NotTRO: and #VictoryMusic        ;check for victory music (the only secondary th
         lda AreaMusicBuffer      ;check primary buffer for any music except pipe intro
         and #%01011111
         bne MusicLoopBack        ;if any area music except pipe intro, music loops
-        lda #$00                 ;clear primary and secondary buffers and initialize
+NoLoop: lda #$00                 ;clear primary and secondary buffers and initialize
         sta AreaMusicBuffer      ;control regs of square and triangle channels
         sta EventMusicBuffer
         sta SND_TRIANGLE_REG
