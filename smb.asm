@@ -5630,7 +5630,11 @@ MaxCC:   sty $00                    ;store whatever pseudorandom bits are in Y
          and #%00000011             ;get last two bits of LSFR, first part
          sta $00                    ;and store in two places
          sta $01
+      .IFDEF TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS
+         lda #$fa                   ;set vertical speed for cheep-cheep
+      .ELSE
          lda #$fb                   ;set vertical speed for cheep-cheep
+      .ENDIF
          sta Enemy_Y_Speed,x
          lda #$00                   ;load default value
          ldy Player_X_Speed         ;check player's horizontal speed
