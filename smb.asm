@@ -2887,8 +2887,12 @@ IntroEntr:  jsr EnterSidePipe         ;execute sub to move player to the right
             jmp NextArea              ;jump to increment to next area and set modes
 EntrMode2:  lda JoypadOverride        ;if controller override bits set here,
             bne VineEntr              ;branch to enter with vine
+.IFDEF TWEAK_SMALL_OPTIMISATIONS
+            dec Player_Y_Position
+.ELSE
             lda #$ff                  ;otherwise, set value here then execute sub
             jsr MovePlayerYAxis       ;to move player upwards
+.ENDIF
             lda Player_Y_Position     ;check to see if player is at a specific coordinate
             cmp #$91                  ;if player risen to a certain point (this requires pipes
             bcc PlayerRdy             ;to be at specific height to look/function right) branch
@@ -3066,11 +3070,13 @@ VerticalPipeEntry:
       iny
       jmp ChgAreaPipe      ;otherwise use mode 2
 
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 MovePlayerYAxis:
       clc
       adc Player_Y_Position ;add contents of A to player position
       sta Player_Y_Position
       rts
+.ENDIF
 
 ;-------------------------------------------------------------------------------------
 
