@@ -3073,13 +3073,26 @@ VerticalPipeEntry:
       jsr ScrollHandler    ;do sub to scroll screen with saved force if necessary
       ldy #$00             ;load default mode of entry
       lda WarpZoneControl  ;check warp zone control variable/flag
+.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+      bne WarpZoneChgAreaPipe
+.ELSE
       bne ChgAreaPipe      ;if set, branch to use mode 0
+.ENDIF
       iny
       lda AreaType         ;check for castle level type
       cmp #$03
       bne ChgAreaPipe      ;if not castle type level, use mode 1
       iny
       jmp ChgAreaPipe      ;otherwise use mode 2
+
+.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+WarpZoneChgAreaPipe:
+      lda WorldNumber
+      cmp #$07
+      bne ChgAreaPipe
+      ldy #$02
+      bne ChgAreaPipe
+.ENDIF
 
 .IFNDEF TWEAK_SMALL_OPTIMISATIONS
 MovePlayerYAxis:
@@ -3727,7 +3740,6 @@ WarpZoneObject:
       bne ExGTimer           ;if so, branch to leave
       sta ScrollLock         ;otherwise nullify scroll lock flag
       inc WarpZoneControl    ;increment warp zone flag to make warp pipes for warp zone
-      ;TO-DO      set warpzone control such that it reaches Bowser's lair (if possible)
       jmp EraseEnemyObject   ;kill this object
 
 ;-------------------------------------------------------------------------------------
@@ -9563,6 +9575,24 @@ HandlePipeEntry:
 GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
          dey                       ;decrement for use as world number
          sty WorldNumber           ;store as world number and offset
+.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+         lda #Silence
+         sta EventMusicQueue       ;silence music
+         lda #$00
+         sta EntrancePage          ;initialize starting page number
+         cpy #$08                  ;are we in an invalid world?
+         bcs MinusWorld            ;if so, branch
+         sta AreaNumber            ;initialize area number used for area address offset
+         sta LevelNumber           ;initialize level number used for world display
+         sta AltEntranceControl
+         ldx WorldAddrOffsets,y    ;get offset to where this world's area offsets are
+         lda AreaAddrOffsets,x     ;get area offset based on world offset
+         sta AreaPointer           ;store area offset here to be used to change areas
+      .IFNDEF TWEAK_UNCONDITIONAL_1UP
+         inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
+      .ENDIF
+         inc FetchNewGameTimerFlag ;set flag to load new game timer
+.ELSE
          ldx WorldAddrOffsets,y    ;get offset to where this world's area offsets are
          lda AreaAddrOffsets,x     ;get area offset based on world offset
          sta AreaPointer           ;store area offset here to be used to change areas
@@ -9577,7 +9607,21 @@ GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
          inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
       .ENDIF
          inc FetchNewGameTimerFlag ;set flag to load new game timer
+.ENDIF
 ExPipeE: rts                       ;leave!!!
+
+.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+MinusWorld:
+         ldy #$03                  ;otherwise, it's sewage time! Get your 3 ready
+         sty LevelNumber           ;because we're storing it in both level values
+         sty AreaNumber            ;meaning we're in level x-4
+         dey                       ;get your 2 ready
+         sty AreaPointer           ;because that's coincidentally our area pointer
+         sty DisableIntermediate   ;and we can use it to skip the lives screen.
+         ldy #$07                  ;now finally, get your 7 ready
+         sty WorldNumber           ;because now we're making it level 8-4!
+         bne ExPipeE               ;Now go off!.
+.ENDIF
 
 ImpedePlayerMove:
        lda #$00                  ;initialize value here
