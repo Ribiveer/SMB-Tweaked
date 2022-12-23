@@ -1,0 +1,418 @@
+
+        ________ 
+       /O       \
+      /      O   |
+     /  O         \
+    |___________O__|
+        \      \
+        |       |
+        \______/
+
+     SMB Untility
+**Unofficial Help and Reference Guide**
+
+ ~~ by iridium_ionizer
+
+Special Thanks to M.K.S, Neil Bradley, Chezzman1, Insectduel, MirracleMXX, Yy, 
+
+Extra Thanks to 手塚 卓志 (Tezuka Takashi) and 宮本 茂 (Miyamoto Shigeru)
+
+Note: If you want to see a quick (but incomplete) video tutorial, watch John Riggs' tutorial: 
+
+https://www.youtube.com/watch?v=fTUeazaKWcQ&list=PLsOTz-tlvayLmYmgreE4q1w0E6rN29T4p&index=11&t=0s
+
+TABLE OF CONTENTS
+-------------------------------------
+1 Basics
+2 Details
+3 Warp Zones
+4 Edit Header
+5 Vertical Height Table
+6 Further Questions
+7 Room Table 
+8 Edit Text Table
+9 Edit Looping Castle
+10 Quick Conversions
+
+
+🍄1: Basics🍄
+----------------
+
+• Click on the Yellow Excavator icon to change objects (bricks, blocks, pipes, etc.)
+   - Goes to Map Mode
+           o This includes Ladders
+
+• Click on the Red Turtle Shell icon to change enemies (goombas, lifts, etc.)
+   - Goes to Badguys Mode
+   - This includes: 
+           o Page Skips (such as the halfway point) 
+           o Room Changes (down a pipe)
+           o Lifts (moving platforms)
+
+• Edit --> Choose Room (or pipe icon) to switch levels. 
+   - Green Pipe button on the Toolbar. 
+   - Note: The bonus areas (underground, in beanstalks, etc.) are in different rooms. 
+
+• Double Left Click on object or enemy to change properties (type, position, etc.)
+   - You can also double Left click on the object in the map screen. 
+   - Or drag it around on the map screen. 
+
+• Right Click --> Send Object to change location of an object or enemy (a different page, room). 
+   - Page = screen within a level. 
+   - Room = level (or bonus area). 
+
+
+🌻2: Details🌻
+----------------
+
+• The Length of bricks is their horizontal length (and secret blocks can be hidden inside). 
+
+• The Length of pipes is their vertical height. There are also other blocks that are aligned vertically. 
+
+• Some groups of enemies are denoted by their FIXED vertical position. 
+   - V=10 (on ground level)
+   - V=6 (on typical block height)
+
+• If you have 4 or more objects which start at the same vertical column, they will GLITCH and you will not see most of the other objects on THAT page. 
+   - There are other limitations on the number of objects per page. 
+
+• Sometimes if you move the Page skip even slightly within a page, other objects (and enemies) will move several pages over INSTANTLY. 
+   - I ran into this issue near the halfway poin of 8-1, and then I just moved the page skip back. 
+
+
+• The Room change (enemies) change from the current level map to a different level map. 
+  Note: Even if the Room changes it will not change the level designation (unless it is a warp zone). 
+   - [25H(Ground), w=1, p=10] means go to Room 25 [H] and Page 10 if you are on World 1.  
+   - [28H(Ground), w=2, p=7] means go to Room 28 [H] and Page 7 if you are on World 2.  
+   - [40H(Underground), w=1, p=7] means go to Room 40 [H] and Page 7 if you are on World 1.  
+
+
+• Scenes (at V=14, H=0) determine the the floor, ceilings, backgrounds, etc.
+   - You can edit the object to change the scene (note that it will probably change the background for the previous page as well). 
+
+- Dropping down the floor (for things like coins) doesn't get you stuck. 
+
+- A lot of times when you jam too many prizes on one page, some of them start disappearing even if they are visible in the level editor. 
+
+• Note that there is a checkbox in the Edit box for enemies (including lifts) that allows them to appear after level 5-3 (the default Hard level). 
+  - This is because there are several levels that are repeats, just with more enemies and smaller lifts. 
+
+
+🐢🍄3: Warp Zones🍄🐢
+-------------------
+
+• This changes the text headers (which is what the Warp Zone object is) AND the pipe destinations. 
+Tools --> Edit Some Game Stuff --> Warp Zones
+Warp Zone 1 -->  4   3   2 (end of 1-2)
+Warp Zone 2 --> 36   5  36 (end of 4-2)
+Warp Zone 3 -->  8   7   6 (vine in 4-2)
+
+     o So if the left pipe destination is 4, then going down that pipe will send the player to World 4-1. 
+     o Also that pipe destination 36 is no destination. It will show up as blank on the screen, but if a pipe is there it will take the player to a glitched level. 
+
+
+• To alter the locations 
+   - Take the pipes and move them to a different level. 
+
+• Room Change (vine) --> Mushroom Hill Warp Zone 
+   - You will not be able to move this with the Send Object command
+   - Instead move an enemy from that level to the desired page
+   - Then Edit the enemy and change the binary (which is actually hexcode) 1e 2f 60 
+   - You will also need to change the world in the Edit box (so the correct level shows up in the HUD). 
+   - Note that because the hexcode is so long, it will actually glitch all of the enemies after that point in the level, but you can edit them back to normal. 
+
+
+
+
+⭐🌟4: Edit --> Edit Header🌟⭐
+---------------------------
+• Time = Time limit for level
+   - Not set
+   - 400 (default)
+   - 300
+   - 200
+• Position = starting position in level
+   - V = -1, H = 1.5
+   - Start of area:X, from another room; V=-1, H=1.5 (default underground)
+   - V = 10, H = 1.5 (default)
+   - V = 4, H = 1.5
+   - V = -1, H = 1.5
+   - V = -1, H = 1.5
+   - V = 10, H = 1.5 (walking)
+   - V = 10, H = 1.5 (walking)
+• Back = Background and Color Scheme
+   - Nothing (default)
+   - In Water
+   - Wall (like level 8-3)
+   - Over Water
+   - Night
+   - Snow (black and brown)
+   - Night and Snow
+   - Castle (black and grey)
+• Type = Types of platforms
+   - Green and tree (default)
+   - Orange and Mushroom
+   - Guns (every platform is a cannon)
+   - Clouds (the ground is clouds). Note: this also changes bricks into clouds. 
+• Seanery - aka Scenery
+   - Nothing (default)
+   - Clouds (billowy clouds in the sky)
+   - Mountains (hills and shrubs on the ground, while billowy clouds in the sky)
+   - Fence (fences and small trees on the ground, while billowy clouds in the sky)
+Note: Some of the Types and Seanerys can only go together. 
+Example: Can't do Orange and Mushroom TYPE with Clouds SEANERY  
+• Basic Brick = Sets the starting scene for the level (ground and / or ceiling)
+   Note: Surface Height is UP from 12 and Ceiling height is DOWN from -1 
+   Example: Surface (5) is actually 6 layers of floor up from the bottom of the screen. 
+   - Brick: None
+   - Brick: Surface (default) - at 11
+   - Brick: Surface & ceiling
+   - Brick: Surface & ceiling (3)
+   - Brick: Surface & ceiling (4)
+   - Brick: Surface & ceiling (8)
+   - Brick: Surface (4) & ceiling 
+   - Brick: Surface (4) & ceiling (3)
+   - Brick: Surface (4) & ceiling (4)
+   - Brick: Surface (5) & ceiling 
+   - Brick: Ceiling
+   - Brick: Surface (5) & ceiling (4)
+   - Brick: Surface (8) & ceiling 
+   - Brick: Surface & ceiling & middle (5)
+   - Brick: Surface & ceiling & middle (4)
+   - Brick: All (everythings is the ground!!!)
+• Attribute = Palette swap and some tile changes 
+   - Sea (ground becomes coral)
+   - Ground (default)
+   - Underground
+   - Castle (ground becomes castle stone)
+Area
+• Halfway Page (6)
+
+
+
+⭐🌟5: Vertical Height Table🌟⭐
+---------------------------
+• higher number = lower on the screen
+
+Vertical|
+Height  | Description
+------------------------------------
+ V=-1   | (visible top)
+ V= 0   | 
+ V= 1   | (top blocks)
+------------------------------------
+ V= 2   | 
+ V= 3   | Level for Horizontal ?Blocks
+ V= 4   | 
+------------------------------------
+ V= 5   | 
+ V= 6   | (on typical block height)
+ V= 7   | (typical block height) Level for Horizontal ?Blocks
+------------------------------------
+ V= 8   | 
+ V= 9   | 
+ V=10   | (enemies at ground level)
+------------------------------------
+ V=11   | (ground level)
+ V=12   | HOLES, series of ?Blocks, bridges, balanc rope, etc. Use THIS height
+ V=13   | (bottom) AXE, etc.
+
+
+ _                       __
+|❔|6: Further Questions |❔|
+ ͞                        ͞ ͞ 
+- I'm not sure why some objects / enemies cannot be rearranged. 
+- I'm not sure why the exit pipes in the underground bonus rooms disappear when you rearrange other objects. (see in Details above)
+- I'm not sure why the jump board sometimes glitches. 
+        o Is it due to the vertical location of where its placed. (Try V = 9)
+        o Usually it works fine.  
+        o But sometimes (without any changes) the invisible jump board just happens (Mario gets stuck).  
+             - note this glitch is occasionally seen when running the original game on actual hardware. 
+- I'm not sure what the page flags do. 
+
+
+🐢🌵7: Room Table🌵🐢
+--------------------
+
+Room #   | Location Description
+--------------------------------
+Room 00  | Water Pipe (from 5-2, 6-2)
+Room 01  | 2-2 Swimming Level (also 7-2)
+Room 02  | Fiery Water Pipe (from 8-4)
+--------------------------------
+Room 20  | 3-3 Night Cliffs
+Room 21  | 8-3 Hammer Bros. Outside Castle
+Room 22  | 4-1 Lakitu Spikey Sprint
+--------------------------------
+Room 23  | 3-2 Night Part II
+Room 24  | 3-1 Night Part I (100-up)
+Room 25  | 1-1 Start
+--------------------------------
+Room 26  | 1-3 Cliffs (also 5-3 w/ bullets)
+Room 27  | 2-3 Flying Fish (also 7-3 w/ turtles)
+Room 28  | 2-1 Normal
+Room 29  | Underworld pipe intro
+--------------------------------
+Room 2a  | 5-1 Long Stretch
+Room 2b  | Cloud Coin Land
+Room 2c  | 4-3 Mushroom Cliffs
+--------------------------------
+Room 2d  | 6-3 Greyscale Nights
+Room 2e  | 6-1 Lakitu Nights
+Room 2f  | Mushroom Cliffs Warp Zone (from 4-2)
+--------------------------------
+Room 30  | 8-1 Hard Jumps
+Room 31  | 5-2 Hammer Bros. 
+Room 32  | 8-2 Lakitu Start
+--------------------------------
+Room 33  | 7-1 Hammer and Bullets
+Room 34  | Night Cloud Coin Land
+Room 35  | 3-2 Night Flat Stretch
+--------------------------------
+Room 40  | 1-2 Underground
+Room 41  | 4-2 Underground
+Room 42  | Underground Coin Rooms* 
+--------------------------------
+Room 60  | 1-4 Castle (also 6-4 w/ more fire wheels)
+Room 61  | 4-4 Castle Maze (easy)
+Room 62  | 2-4 Castle (also 5-4 w/ big fire wheel)
+--------------------------------
+Room 63  | 3-4 Hotfoot hop
+Room 64  | 7-4 Castle Maze (tough)
+Room 65  | 8-4 Castle Master Maze
+
+TOTAL ROOMS = 11*3+1 = 34
+
+
+* = Room 42 (Underground Coin Rooms) 
+    • Page 0 = big pile of coins
+    • Page 2 = 2 rows of coins
+    • Page 4 = Pyramid in the middle
+    • Page 6 = Brick bunker at bottom
+    • Page 8 = Brick bunker at top
+- Also the Scroll Stop needs to be placed at H=4, V=13 of the next page for Bonus rooms. 
+
+---------❔🐢🍄🎆⭐🌟🌵🌻🧱•□◊○∆†
+
+
+🍄8: Edit Text Table🍄
+
+Tools --> Edit Text
+------------------------------------------------
+Original Text                        | # char* |
+------------------------------------------------
+MARIO(Status Bar)                    |    5    |
+MARIO(Time up at two players mode)   |    5    |
+MARIO(Game over)                     |    5    |
+------------------------------------------------
+LUIGI(Status Bar/Time up/Game over)  |    5    |
+WORLD  TIME(Status Bar)              |   11    |
+WORLD(On the World 1-1 ect screen)   |    5    |
+------------------------------------------------
+TIME UP                              |    7    |
+GAME OVER                            |    9    |
+WELCOME TO WARP ZONE!                |   21    |
+------------------------------------------------
+THANK YOU MARIO!                     |   16    |
+THANK YOU LUIGI!                     |   16    |
+BUT OUR PRINCESS IS IN               |   22    |
+------------------------------------------------
+ANOTHER CASTLE!                      |   15    |
+YOUR QUEST IS OVER.                  |   19    |
+WE PRESENT YOU A NEW QUEST.          |   27    |
+------------------------------------------------
+PUSH BUTTON B                        |   13    |
+TO SELECT A WORLD                    |   17    |
+@1985 NINTENDO(© Title Screen)       |   14    |
+------------------------------------------------
+1 PLAYER GAME(Title screen)          |   13    |
+2 PLAYER GAME(Title screen)          |   13    |
+                                     |         |
+------------------------------------------------
+
+*# char = number of text characters
+
+           _   _   _
+          | |_| |_| |
+           \       /
+            |     |
+            |     |
+ _   _   _  |     |  _   _   _
+| |_| |_| |_|     |_| |_| |_| |
+|   9: Edit Looping Castle    |
+|        Loop (Maze)          |
+
+Tools --> Edit Looping Castle 
+
+World (+1 to get displayed World #)
+   03 03 06 06 06 06 06 06 07 07 07
+
+Page (end of a loop segment)
+   05 09 04 05 06 08 09 0a 06 0b 10
+
+V pos (vertical position)
+   40 b0 b0 80 40 40 80 40 f0 f0 f0
+
+Offset of map page skip data   [horizontal offset?]
+   12 36 0e 0e 0e 32 32 32 0a 26 40
+
+World 7's loop
+    World  06    06
+
+Notice how the V pos values all have zeroes for the last digit. So disregard the last digit and take the first digit only as the vertical position. 
+
+Take the value and -1 ? to find where the invisible loop flag is. 
+
+**
+
+EXAMPLE (the first two columns of data):
+
+World (+1 to get displayed World #)
+   03 03
+
+Page (end of a loop segment)
+   05 09
+
+V pos (vertical position)
+   40 b0
+
+Offset of map page skip data   [horizontal offset?]
+   12 36
+
+This means in the castle in World 4 (the only type of level that can have a looping maze), there are two loops. The first loop ends on page 05 with its vertical position at 3 (since 4 - 1 = 3) and a horizontal position of 12 on that page. The second loop ends on page 09 with its vertical position at 10 (since 0b - 01 = 0a = 10 in decimal) and a horizontal position of 36 on that page. 
+   
+
+10 - Quick Conversions (Hexadecimal --> Decimal)
+0=0
+1=1
+2=2
+3=3
+4=4
+5=5
+6=6
+7=7
+8=8
+9=9
+a=10
+b=11
+c=12
+d=13
+e=14
+f=15
+10=16
+
+
+More Quick Conversions
+0a=10
+0b=11
+0e=14
+10=16
+12=18
+26=38
+32=50
+36=54
+40=64
+80=128
+b0=176
+f0=240
+
