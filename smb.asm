@@ -3057,8 +3057,19 @@ SetEntr:   lda #$02               ;set starting position to override
 ;-------------------------------------------------------------------------------------
 
 VerticalPipeEntry:
+.IFDEF TWEAK_FIX_PIPE_CROUCHING
+      lda PlayerSize
+      eor #$01
+      sta CrouchingFlag
+      inc Player_Y_Position
+.ELSE
+  .IFDEF TWEAK_SMALL_OPTIMISATIONS
+      inc Player_Y_Position
+  .ELSE
       lda #$01             ;set 1 as movement amount
       jsr MovePlayerYAxis  ;do sub to move player downwards
+  .ENDIF
+.ENDIF
       jsr ScrollHandler    ;do sub to scroll screen with saved force if necessary
       ldy #$00             ;load default mode of entry
       lda WarpZoneControl  ;check warp zone control variable/flag
