@@ -1,4 +1,4 @@
-; TO-DO: this can be replaced with incrementing y, instead of doing the lookup.
+; TO-DO: this can be replaced with incrementing x, instead of doing the lookup.
 AreaPalette:
       .db $01, $02, $03, $04
 

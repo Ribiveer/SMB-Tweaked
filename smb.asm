@@ -3701,11 +3701,16 @@ ExGTimer:  rts                        ;leave
 WarpZoneObject:
       lda ScrollLock         ;check for scroll lock flag
       beq ExGTimer           ;branch if not set to leave
+.IFDEF TWEAK_FIX_WARP_ZONE_SCROLL
+      lda Player_Y_HighPos   ;check to see if player is not above the screen
+.ELSE
       lda Player_Y_Position  ;check to see if player's vertical coordinate has
       and Player_Y_HighPos   ;same bits set as in vertical high byte (why?)
+.ENDIF
       bne ExGTimer           ;if so, branch to leave
       sta ScrollLock         ;otherwise nullify scroll lock flag
       inc WarpZoneControl    ;increment warp zone flag to make warp pipes for warp zone
+      ;TO-DO      set warpzone control such that it reaches Bowser's lair (if possible)
       jmp EraseEnemyObject   ;kill this object
 
 ;-------------------------------------------------------------------------------------
