@@ -56,7 +56,7 @@ SkipPIn: lda #$00                  ;clear pause sfx buffer
          beq SkipSoundSubroutines
 
 RunSoundSubroutines:
-        .IFDEF TWEAK_TITLE_MUSIC
+        .IF TWEAK_TITLE_MUSIC
          lda OperMode
          beq NoSFX
         .ENDIF
@@ -665,7 +665,7 @@ HandleSquare2Music:
         bne Squ2LengthHandler    ;otherwise it is length data
 
 EndOfMusicData:
-.IFDEF TWEAK_TITLE_MUSIC
+.IF TWEAK_TITLE_MUSIC
         lda OperMode             ;if on the title screen
         beq NoLoop               ;do not loop
 .ENDIF

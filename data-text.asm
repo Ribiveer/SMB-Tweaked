@@ -14,7 +14,7 @@ WorldLivesDisplay:
   .db $21, $4b, $09, $20, $18 ; "WORLD  - " used on lives display
   .db $1b, $15, $0d, $24, $24, $28, $24
   .db $22, $0c, $47, $24 ; possibly used to clear time up
-.IFDEF TWEAK_FIX_LIVES
+.IF TWEAK_FIX_LIVES
   .db $00, $00, $00, $00
 .ELSE
   .db $23, $dc, $01, $ba ; attribute table data for crown if more than 9 lives

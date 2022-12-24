@@ -7,7 +7,7 @@ WaterPaletteData:
   .db $0f, $30, $12, $0f
   .db $0f, $27, $12, $0f
   .db $22, $16, $27, $18
-.IFDEF TWEAK_GREEN_CHEEP_CHEEPS
+.IF TWEAK_GREEN_CHEEP_CHEEPS
   .db $0f, $1a, $30, $27
 .ELSE
   .db $0f, $10, $30, $27
