@@ -628,7 +628,7 @@ DecNumTimer:  dec FloateyNum_Timer,x       ;decrement value here
               bne ChkTallEnemy
               cpy #$0b                     ;check offset for $0b
               bne LoadNumTiles             ;branch ahead if not found
-            .IFDEF TWEAK_FIX_LIVES
+            .IF TWEAK_FIX_LIVES
               jsr AddLife
             .ELSE  
               inc NumberofLives            ;give player one extra life (1-up)
@@ -693,7 +693,7 @@ SetupNumSpr:  lda FloateyNum_Y_Pos,x       ;get vertical coordinate
 
 ;-------------------------------------------------------------------------------------
 
-.IFDEF TWEAK_FIX_LIVES
+.IF TWEAK_FIX_LIVES
 AddLife:
             lda #Sfx_ExtraLife
             sta Square2SoundQueue        ;play 1-up sound
@@ -781,11 +781,16 @@ BackgroundColors:
       .db $0f, $22, $0f, $0f ;used by background color control if set
 
 PlayerColors:
-.IFDEF TWEAK_SMB_DELUXE_LUIGI_PALETTE
+.IF TWEAK_SMB_DELUXE_LUIGI_PALETTE
       .db $22, $16, $27, $18 ;mario's colors
       .db $22, $1a, $27, $18 ;luigi's colors
       .db $22, $37, $27, $16 ;fiery mario
       .db $22, $30, $27, $19 ;fiery luigi
+.ELSEIF TWEAK_SMM2_LUIGI_PALETTE
+      .db $22, $16, $27, $18 ;mario's colors
+      .db $22, $30, $27, $19 ;luigi's colors
+      .db $22, $37, $27, $16 ;fiery mario
+      .db $22, $29, $27, $16 ;fiery luigi
 .ELSE
       .db $22, $16, $27, $18 ;mario's colors
       .db $22, $30, $27, $19 ;luigi's colors
@@ -801,7 +806,7 @@ NoBGColor: inc ScreenRoutineTask     ;increment to next subtask and plod on thro
       
 GetPlayerColors:
                ldx VRAM_Buffer1_Offset  ;get current buffer offset
-            .IFDEF TWEAK_SMB_DELUXE_LUIGI_PALETTE
+            .IF TWEAK_SMB_DELUXE_LUIGI_PALETTE + TWEAK_SMM2_LUIGI_PALETTE
                lda PlayerStatus         ;check player status
                and #$02                 ;we only care if the player is firey, which is in bit 1.
                ora CurrentPlayer        ;add the current player in bit 0.
@@ -1038,7 +1043,7 @@ EndGameText:   lda #$00                 ;put null terminator at end
                lda NumberofLives        ;otherwise, check number of lives
                clc                      ;and increment by one for display
                adc #$01
-            .IFDEF TWEAK_FIX_LIVES
+            .IF TWEAK_FIX_LIVES
                ldy #$00
 LivesLoop:     cmp #10                  ;more than 9 lives in y?
                bcc PutLives
@@ -1877,13 +1882,13 @@ SkipByte:     dey
 MusicSelectData:
       .db WaterMusic, GroundMusic, UndergroundMusic, CastleMusic
       .db CloudMusic, PipeIntroMusic
-.IFDEF TWEAK_TITLE_MUSIC
+.IF TWEAK_TITLE_MUSIC
       .db CloudMusic | WaterMusic
 .ENDIF
 
 GetAreaMusic:
              lda OperMode           ;load mode
-      .IFDEF TWEAK_TITLE_MUSIC
+      .IF TWEAK_TITLE_MUSIC
              bne NotTitle
              ldy #$06
              bne StoreMusic
@@ -2005,7 +2010,7 @@ PlayerLoseLife:
              inc DisableScreenFlag    ;disable screen and sprite 0 check
              lda #$00
              sta Sprite0HitDetectFlag
-      .IFDEF TWEAK_TITLE_MUSIC
+      .IF TWEAK_TITLE_MUSIC
              lda OperMode             ;if we're in the title screen
              beq NoDeathSil           ;don't pause the music for death
       .ENDIF
@@ -2534,7 +2539,7 @@ RunAObj:  lda $00                    ;get stored value and add offset to it
       .dw QuestionBlock     ;power-up
       .dw QuestionBlock     ;coin
       .dw QuestionBlock     ;hidden, coin
-.IFDEF TWEAK_UNCONDITIONAL_1UP
+.IF TWEAK_UNCONDITIONAL_1UP
       .dw BrickWithItem     ;hidden, 1-up, unconditional
 .ELSE
       .dw Hidden1UpBlock    ;hidden, 1-up   
@@ -3733,7 +3738,7 @@ IntroEntr:  jsr EnterSidePipe         ;execute sub to move player to the right
             jmp NextArea              ;jump to increment to next area and set modes
 EntrMode2:  lda JoypadOverride        ;if controller override bits set here,
             bne VineEntr              ;branch to enter with vine
-.IFDEF TWEAK_SMALL_OPTIMISATIONS
+.IF TWEAK_SMALL_OPTIMISATIONS
             dec Player_Y_Position
 .ELSE
             lda #$ff                  ;otherwise, set value here then execute sub
@@ -3903,12 +3908,12 @@ SetEntr:   lda #$02               ;set starting position to override
 ;-------------------------------------------------------------------------------------
 
 VerticalPipeEntry:
-.IFDEF TWEAK_FORCE_PIPE_CROUCHING
+.IF TWEAK_FORCE_PIPE_CROUCHING
       lda PlayerSize
       eor #$01
       sta CrouchingFlag
 .ENDIF
-  .IFDEF TWEAK_SMALL_OPTIMISATIONS
+  .IF TWEAK_SMALL_OPTIMISATIONS
       inc Player_Y_Position
   .ELSE
       lda #$01             ;set 1 as movement amount
@@ -3917,7 +3922,7 @@ VerticalPipeEntry:
       jsr ScrollHandler    ;do sub to scroll screen with saved force if necessary
       ldy #$00             ;load default mode of entry
       lda WarpZoneControl  ;check warp zone control variable/flag
-.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+.IF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
       bne WarpZoneChgAreaPipe
 .ELSE
       bne ChgAreaPipe      ;if set, branch to use mode 0
@@ -3929,7 +3934,7 @@ VerticalPipeEntry:
       iny
       jmp ChgAreaPipe      ;otherwise use mode 2
 
-.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+.IF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
 WarpZoneChgAreaPipe:
       lda WorldNumber
       cmp #$07
@@ -3979,7 +3984,7 @@ PlayerChangeSize:
              lda TimerControl    ;check master timer control
              cmp #$f8            ;for specific moment in time
              bne EndChgSize      ;branch if before or after that point
-      .IFDEF TWEAK_SMALL_OPTIMISATIONS
+      .IF TWEAK_SMALL_OPTIMISATIONS
              beq InitChangeSize  ;otherwise run code to get growing/shrinking going
       .ELSE
              jmp InitChangeSize  ;otherwise run code to get growing/shrinking going
@@ -4005,7 +4010,7 @@ InitChangeSize:
           bne ExitBoth              ;then branch to leave
           sty PlayerAnimCtrl        ;otherwise initialize player's animation frame control
           inc PlayerChangeSizeFlag  ;set growing/shrinking flag
-      .IFDEF TWEAK_MODERN_POWERUP
+      .IF TWEAK_MODERN_POWERUP
           lda PlayerStatus          ;load the player status 0 = small, 1 = super, 2 = fire
           bne ICSBig                ;if we're big, y = 0
           iny                       ;otherwise, y = 1
@@ -4382,7 +4387,7 @@ GetYPhy:   lda JumpMForceData,y       ;store appropriate jump/swim
            sta Player_Y_MoveForce
            lda PlayerYSpdData,y
            sta Player_Y_Speed
-.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+.IF TWEAK_MODERN_ENEMY_BOUNCE
            lda StompTimer             ;if the player is stomping something
            bne PStompSnd              ;do the stomp sound instead.
 .ENDIF
@@ -4743,7 +4748,7 @@ WarpZoneObject:
       lda ScrollLock         ;check for scroll lock flag
       beq ExGTimer           ;branch if not set to leave
       lda Player_Y_Position  ;check if player is standing exactly on the bricks (y_pos = 0)
-.IFDEF TWEAK_FIX_WARP_ZONE_SCROLL
+.IF TWEAK_FIX_WARP_ZONE_SCROLL
       beq UnlockWarpZone     ;if so, unlock the warp zone
       lda Player_Y_HighPos   ;check if player is above the bricks (y_page = 0)
 .ELSE
@@ -5368,7 +5373,7 @@ GiveOneCoin:
       bne CoinPoints         ;if not, skip all of this
       lda #$00
       sta CoinTally          ;otherwise, reinitialize coin amount
-    .IFDEF TWEAK_FIX_LIVES
+    .IF TWEAK_FIX_LIVES
       jsr AddLife
     .ELSE
       inc NumberofLives      ;give the player an extra life
@@ -5794,7 +5799,7 @@ UpdateLoop: stx ObjectOffset          ;set offset here
             tay
             lda Block_Metatile,x      ;get metatile to be written
             sta ($06),y               ;write it to the block buffer
-            .IFDEF TWEAK_SMALL_OPTIMISATIONS
+            .IF TWEAK_SMALL_OPTIMISATIONS
             jsr WriteBlockMetatile    ;do sub to replace metatile where block object is
             .ELSE
             jsr ReplaceBlockMetatile  ;do sub to replace metatile where block object is
@@ -6723,7 +6728,7 @@ MaxCC:   sty $00                    ;store whatever pseudorandom bits are in Y
          and #%00000011             ;get last two bits of LSFR, first part
          sta $00                    ;and store in two places
          sta $01
-      .IFDEF TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS
+      .IF TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS
          lda #$fa                   ;set vertical speed for cheep-cheep
       .ELSE
          lda #$fb                   ;set vertical speed for cheep-cheep
@@ -8204,7 +8209,7 @@ GetVAdder: sta $02                    ;store result here
 
 ;--------------------------------
 
-.IFDEF TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS
+.IF TWEAK_PAL_OPTIMISE_CHEEP_CHEEPS
       MoveFlyingCheepCheep:             ;Plomp the PAL Cheep Cheep code here, muhahahah!
             ldy #$20
             lda Enemy_State,x          ;check cheep-cheep's enemy state
@@ -9495,7 +9500,7 @@ HandlePowerUpCollision:
       rts
 
 Shroom_Flower_PUp:
-.IFDEF TWEAK_MODERN_POWERUP
+.IF TWEAK_MODERN_POWERUP
       ldx PowerUpType         ;load the power-up type
       beq UpToSuper           ;if mushroom, branch
       inx                     ;otherwise get our preferred player status: 2
@@ -9538,7 +9543,7 @@ UpToSuper:
        lda #$09         ;set value to be used by subroutine tree (super)
 
 UpToFiery:
-      .IFDEF TWEAK_FIX_POWERUP_JUMP
+      .IF TWEAK_FIX_POWERUP_JUMP
        ldy Player_State
       .ELSE
        ldy #$00         ;set value to be used as new player state
@@ -9671,7 +9676,7 @@ InjurePlayer:
       bne ExInjColRoutines     ;at zero, and branch to leave if so
 
 ForceInjury:
-      .IFDEF TWEAK_MODERN_DAMAGE
+      .IF TWEAK_MODERN_DAMAGE
           ldx PlayerStatus          ;check player's status
           beq KillPlayer            ;branch if small
           lda #$08
@@ -9760,7 +9765,7 @@ EnemyStompedPts:
       sta Enemy_State,x          ;set d5 in enemy state
       jsr InitVStf               ;nullify vertical speed, physics-related thing,
       sta Enemy_X_Speed,x        ;and horizontal speed
-.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+.IF TWEAK_MODERN_ENEMY_BOUNCE
       jmp HandleStomp            ;do the player bouncing logic
 .ELSE
       lda #$fd                   ;set player's vertical speed, to give bounce
@@ -9781,7 +9786,7 @@ ChkForDemoteKoopa:
       jsr EnemyFacePlayer        ;turn enemy around if necessary
       lda DemotedKoopaXSpdData,y
       sta Enemy_X_Speed,x        ;set appropriate moving speed based on direction
-.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+.IF TWEAK_MODERN_ENEMY_BOUNCE
       jmp HandleStomp
 StompHigh:
       jmp InitJS                 ;secretly, stomping high is just jumping.
@@ -9807,7 +9812,7 @@ HandleStomp:
        lda RevivalRateData,y      ;load timer setting according to flag
        sta EnemyIntervalTimer,x   ;set as enemy timer to revive stomped enemy
 
-.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+.IF TWEAK_MODERN_ENEMY_BOUNCE
       lda SavedJoypadBits
       and #A_Button              ;if the A button is pressed,
       bne StompHigh              ;Stomp high!
@@ -10480,7 +10485,7 @@ FlagpoleCollision:
       beq PutPlayerOnVine       ;if running, branch to end of climbing code
       lda #$01
       sta PlayerFacingDir       ;set player's facing direction to right
-      .IFDEF TWEAK_FIX_STAR_FLAGPOLE
+      .IF TWEAK_FIX_STAR_FLAGPOLE
       lsr                       ;a = 0
       sta StarInvincibleTimer   ;clear star timer
       .ENDIF
@@ -10615,7 +10620,7 @@ HandlePipeEntry:
 GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
          dey                       ;decrement for use as world number
          sty WorldNumber           ;store as world number and offset
-.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+.IF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
          lda #Silence
          sta EventMusicQueue       ;silence music
          lda #$00
@@ -10650,7 +10655,7 @@ GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
 .ENDIF
 ExPipeE: rts                       ;leave!!!
 
-.IFDEF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
+.IF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
 MinusWorld:
          ldy #$03                  ;otherwise, it's sewage time! Get your 3 ready
          sty LevelNumber           ;because we're storing it in both level values
@@ -12831,7 +12836,7 @@ PIntLoop: lda IntermediatePlayerData,x   ;load data to display player as he alwa
           bpl PIntLoop                   ;do this until all data is loaded
           ldx #$b8                       ;load offset for small standing
           ldy #$04                       ;load sprite data offset
-      .IFDEF TWEAK_DYNAMIC_LIVES_SCREEN
+      .IF TWEAK_DYNAMIC_LIVES_SCREEN
           lda PlayerSize
           bne PIntSml
           lda #$02
@@ -12880,7 +12885,7 @@ DrawPlayerLoop:
         rts
 
 ProcessPlayerAction:
-      .IFDEF TWEAK_FIX_CROUCHING
+      .IF TWEAK_FIX_CROUCHING
         ldy #$06              ;load offset for crouching
         lda CrouchingFlag     ;get crouching flag
         bne NonAnimatedActs
