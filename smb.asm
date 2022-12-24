@@ -283,35 +283,413 @@ SprInitLoop:  sta Sprite_Y_Position,y ;write 248 into OAM data's Y coordinate
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-titlescreen.asm"
+TitleScreenMode:
+      lda OperMode_Task
+      jsr JumpEngine
+
+      .dw InitializeGame
+      .dw ScreenRoutines
+      .dw PrimaryGameSetup
+      .dw GameMenuRoutine
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-titlescreen-menu.asm"
+WSelectBufferTemplate:
+      .db $04, $20, $73, $01, $00, $00
+
+GameMenuRoutine:
+              ldy #$00
+              lda SavedJoypad1Bits        ;check to see if either player pressed
+              ora SavedJoypad2Bits        ;only the start button (either joypad)
+              cmp #Start_Button
+              beq StartGame
+              cmp #A_Button+Start_Button  ;check to see if A + start was pressed
+              bne ChkSelect               ;if not, branch to check select button
+StartGame:    jmp ChkContinue             ;if either start or A + start, execute here
+ChkSelect:    cmp #Select_Button          ;check to see if the select button was pressed
+              beq SelectBLogic            ;if so, branch reset demo timer
+              ldx DemoTimer               ;otherwise check demo timer
+              bne ChkWorldSel             ;if demo timer not expired, branch to check world selection
+              sta SelectTimer             ;set controller bits here if running demo
+              jsr DemoEngine              ;run through the demo actions
+              bcs ResetTitle              ;if carry flag set, demo over, thus branch
+              jmp RunDemo                 ;otherwise, run game engine for demo
+ChkWorldSel:  ldx WorldSelectEnableFlag   ;check to see if world selection has been enabled
+              beq NullJoypad
+              cmp #B_Button               ;if so, check to see if the B button was pressed
+              bne NullJoypad
+              iny                         ;if so, increment Y and execute same code as select
+SelectBLogic: lda DemoTimer               ;if select or B pressed, check demo timer one last time
+              beq ResetTitle              ;if demo timer expired, branch to reset title screen mode
+              lda #$18                    ;otherwise reset demo timer
+              sta DemoTimer
+              lda SelectTimer             ;check select/B button timer
+              bne NullJoypad              ;if not expired, branch
+              lda #$10                    ;otherwise reset select button timer
+              sta SelectTimer
+              cpy #$01                    ;was the B button pressed earlier?  if so, branch
+              beq IncWorldSel             ;note this will not be run if world selection is disabled
+              lda NumberOfPlayers         ;if no, must have been the select button, therefore
+              eor #%00000001              ;change number of players and draw icon accordingly
+              sta NumberOfPlayers
+              jsr DrawMushroomIcon
+              jmp NullJoypad
+IncWorldSel:  ldx WorldSelectNumber       ;increment world select number
+              inx
+              txa
+              and #%00000111              ;mask out higher bits
+              sta WorldSelectNumber       ;store as current world select number
+              jsr GoContinue
+UpdateShroom: lda WSelectBufferTemplate,x ;write template for world select in vram buffer
+              sta VRAM_Buffer1-1,x        ;do this until all bytes are written
+              inx
+              cpx #$06
+              bmi UpdateShroom
+              ldy WorldNumber             ;get world number from variable and increment for
+              iny                         ;proper display, and put in blank byte before
+              sty VRAM_Buffer1+3          ;null terminator
+NullJoypad:   lda #$00                    ;clear joypad bits for player 1
+              sta SavedJoypad1Bits
+RunDemo:      jsr GameCoreRoutine         ;run game engine
+              lda GameEngineSubroutine    ;check to see if we're running lose life routine
+              cmp #$06
+              bne ExitMenu                ;if not, do not do all the resetting below
+ResetTitle:   lda #$00                    ;reset game modes, disable
+              sta OperMode                ;sprite 0 check and disable
+              sta OperMode_Task           ;screen output
+              sta Sprite0HitDetectFlag
+              inc DisableScreenFlag
+              rts
+ChkContinue:  ldy DemoTimer               ;if timer for demo has expired, reset modes
+              beq ResetTitle
+              asl                         ;check to see if A button was also pushed
+              bcc StartWorld1             ;if not, don't load continue function's world number
+              lda ContinueWorld           ;load previously saved world number for secret
+              jsr GoContinue              ;continue function when pressing A + start
+StartWorld1:  jsr LoadAreaPointer
+            .IFNDEF TWEAK_UNCONDITIONAL_1UP
+              inc Hidden1UpFlag           ;set 1-up box flag for both players
+              inc OffScr_Hidden1UpFlag
+            .ENDIF
+              inc FetchNewGameTimerFlag   ;set fetch new game timer flag
+              inc OperMode                ;set next game mode
+              lda WorldSelectEnableFlag   ;if world select flag is on, then primary
+              sta PrimaryHardMode         ;hard mode must be on as well
+              lda #$00
+              sta OperMode_Task           ;set game mode here, and clear demo timer
+              sta DemoTimer
+              ldx #$17
+              lda #$00
+InitScores:   sta ScoreAndCoinDisplay,x   ;clear player scores and coin displays
+              dex
+              bpl InitScores
+ExitMenu:     rts
+GoContinue:   sta WorldNumber             ;start both players at the first area
+              sta OffScr_WorldNumber      ;of the previously saved world number
+              ldx #$00                    ;note that on power-up using this function
+              stx AreaNumber              ;will make no difference
+              stx OffScr_AreaNumber   
+              rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-victory.asm"
+MushroomIconData:
+      .db $07, $22, $49, $83, $ce, $24, $24, $00
+
+DrawMushroomIcon:
+              ldy #$07                ;read eight bytes to be read by transfer routine
+IconDataRead: lda MushroomIconData,y  ;note that the default position is set for a
+              sta VRAM_Buffer1-1,y    ;1-player game
+              dey
+              bpl IconDataRead
+              lda NumberOfPlayers     ;check number of players
+              beq ExitIcon            ;if set to 1-player game, we're done
+              lda #$24                ;otherwise, load blank tile in 1-player position
+              sta VRAM_Buffer1+3
+              lda #$ce                ;then load shroom icon tile in 2-player position
+              sta VRAM_Buffer1+5
+ExitIcon:     rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-victory-setup.asm"
+DemoActionData:
+      .db $01, $80, $02, $81, $41, $80, $01
+      .db $42, $c2, $02, $80, $41, $c1, $41, $c1
+      .db $01, $c1, $01, $02, $80, $00
+
+DemoTimingData:
+      .db $9b, $10, $18, $05, $2c, $20, $24
+      .db $15, $5a, $10, $20, $28, $30, $20, $10
+      .db $80, $20, $30, $30, $01, $ff, $00
+
+DemoEngine:
+          ldx DemoAction         ;load current demo action
+          lda DemoActionTimer    ;load current action timer
+          bne DoAction           ;if timer still counting down, skip
+          inx
+          inc DemoAction         ;if expired, increment action, X, and
+          sec                    ;set carry by default for demo over
+          lda DemoTimingData-1,x ;get next timer
+          sta DemoActionTimer    ;store as current timer
+          beq DemoOver           ;if timer already at zero, skip
+DoAction: lda DemoActionData-1,x ;get and perform action (current or next)
+          sta SavedJoypad1Bits
+          dec DemoActionTimer    ;decrement action timer
+          clc                    ;clear carry if demo still going
+DemoOver: rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-victory-walk.asm"
+VictoryMode:
+            jsr VictoryModeSubroutines  ;run victory mode subroutines
+            lda OperMode_Task           ;get current task of victory mode
+            beq AutoPlayer              ;if on bridge collapse, skip enemy processing
+            ldx #$00
+            stx ObjectOffset            ;otherwise reset enemy object offset 
+            jsr EnemiesAndLoopsCore     ;and run enemy code
+AutoPlayer: jsr RelativePlayerPosition  ;get player's relative coordinates
+            jmp PlayerGfxHandler        ;draw the player, then leave
+
+VictoryModeSubroutines:
+      lda OperMode_Task
+      jsr JumpEngine
+
+      .dw BridgeCollapse
+      .dw SetupVictoryMode
+      .dw PlayerVictoryWalk
+      .dw PrintVictoryMessages
+      .dw PlayerEndWorld
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-victory-print-messages.asm"
+SetupVictoryMode:
+      ldx ScreenRight_PageLoc  ;get page location of right side of screen
+      inx                      ;increment to next page
+      stx DestinationPageLoc   ;store here
+      lda #EndOfCastleMusic
+      sta EventMusicQueue      ;play win castle music
+      jmp IncModeTask_B        ;jump to set next major task in victory mode
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-victory-end-world.asm"
+PlayerVictoryWalk:
+             ldy #$00                ;set value here to not walk player by default
+             sty VictoryWalkControl
+             lda Player_PageLoc      ;get player's page location
+             cmp DestinationPageLoc  ;compare with destination page location
+             bne PerformWalk         ;if page locations don't match, branch
+             lda Player_X_Position   ;otherwise get player's horizontal position
+             cmp #$60                ;compare with preset horizontal position
+             bcs DontWalk            ;if still on other page, branch ahead
+PerformWalk: inc VictoryWalkControl  ;otherwise increment value and Y
+             iny                     ;note Y will be used to walk the player
+DontWalk:    tya                     ;put contents of Y in A and
+             jsr AutoControlPlayer   ;use A to move player to the right or not
+             lda ScreenLeft_PageLoc  ;check page location of left side of screen
+             cmp DestinationPageLoc  ;against set value here
+             beq ExitVWalk           ;branch if equal to change modes if necessary
+             lda ScrollFractional
+             clc                     ;do fixed point math on fractional part of scroll
+             adc #$80        
+             sta ScrollFractional    ;save fractional movement amount
+             lda #$01                ;set 1 pixel per frame
+             adc #$00                ;add carry from previous addition
+             tay                     ;use as scroll amount
+             jsr ScrollScreen        ;do sub to scroll the screen
+             jsr UpdScrollVar        ;do another sub to update screen and scroll variables
+             inc VictoryWalkControl  ;increment value to stay in this routine
+ExitVWalk:   lda VictoryWalkControl  ;load value set here
+             beq IncModeTask_A       ;if zero, branch to change modes
+             rts                     ;otherwise leave
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "floatey-numbers.asm"
+PrintVictoryMessages:
+               lda SecondaryMsgCounter   ;load secondary message counter
+               bne IncMsgCounter         ;if set, branch to increment message counters
+               lda PrimaryMsgCounter     ;otherwise load primary message counter
+               beq ThankPlayer           ;if set to zero, branch to print first message
+               cmp #$09                  ;if at 9 or above, branch elsewhere (this comparison
+               bcs IncMsgCounter         ;is residual code, counter never reaches 9)
+               ldy WorldNumber           ;check world number
+               cpy #World8
+               bne MRetainerMsg          ;if not at world 8, skip to next part
+               cmp #$03                  ;check primary message counter again
+               bcc IncMsgCounter         ;if not at 3 yet (world 8 only), branch to increment
+               sbc #$01                  ;otherwise subtract one
+               jmp ThankPlayer           ;and skip to next part
+MRetainerMsg:  cmp #$02                  ;check primary message counter
+               bcc IncMsgCounter         ;if not at 2 yet (world 1-7 only), branch
+ThankPlayer:   tay                       ;put primary message counter into Y
+               bne SecondPartMsg         ;if counter nonzero, skip this part, do not print first message
+               lda CurrentPlayer         ;otherwise get player currently on the screen
+               beq EvalForMusic          ;if mario, branch
+               iny                       ;otherwise increment Y once for luigi and
+               bne EvalForMusic          ;do an unconditional branch to the same place
+SecondPartMsg: iny                       ;increment Y to do world 8's message
+               lda WorldNumber
+               cmp #World8               ;check world number
+               beq EvalForMusic          ;if at world 8, branch to next part
+               dey                       ;otherwise decrement Y for world 1-7's message
+               cpy #$04                  ;if counter at 4 (world 1-7 only)
+               bcs SetEndTimer           ;branch to set victory end timer
+               cpy #$03                  ;if counter at 3 (world 1-7 only)
+               bcs IncMsgCounter         ;branch to keep counting
+EvalForMusic:  cpy #$03                  ;if counter not yet at 3 (world 8 only), branch
+               bne PrintMsg              ;to print message only (note world 1-7 will only
+               lda #VictoryMusic         ;reach this code if counter = 0, and will always branch)
+               sta EventMusicQueue       ;otherwise load victory music first (world 8 only)
+PrintMsg:      tya                       ;put primary message counter in A
+               clc                       ;add $0c or 12 to counter thus giving an appropriate value,
+               adc #$0c                  ;($0c-$0d = first), ($0e = world 1-7's), ($0f-$12 = world 8's)
+               sta VRAM_Buffer_AddrCtrl  ;write message counter to vram address controller
+IncMsgCounter: lda SecondaryMsgCounter
+               clc
+               adc #$04                      ;add four to secondary message counter
+               sta SecondaryMsgCounter
+               lda PrimaryMsgCounter
+               adc #$00                      ;add carry to primary message counter
+               sta PrimaryMsgCounter
+               cmp #$07                      ;check primary counter one more time
+SetEndTimer:   bcc ExitMsgs                  ;if not reached value yet, branch to leave
+               lda #$06
+               sta WorldEndTimer             ;otherwise set world end timer
+IncModeTask_A: inc OperMode_Task             ;move onto next task in mode
+ExitMsgs:      rts                           ;leave
+
+;-------------------------------------------------------------------------------------
+
+PlayerEndWorld:
+               lda WorldEndTimer          ;check to see if world end timer expired
+               bne EndExitOne             ;branch to leave if not
+               ldy WorldNumber            ;check world number
+               cpy #World8                ;if on world 8, player is done with game, 
+               bcs EndChkBButton          ;thus branch to read controller
+               lda #$00
+               sta AreaNumber             ;otherwise initialize area number used as offset
+               sta LevelNumber            ;and level number control to start at area 1
+               sta OperMode_Task          ;initialize secondary mode of operation
+               inc WorldNumber            ;increment world number to move onto the next world
+               jsr LoadAreaPointer        ;get area address offset for the next area
+               inc FetchNewGameTimerFlag  ;set flag to load game timer from header
+               lda #GameModeValue
+               sta OperMode               ;set mode of operation to game mode
+EndExitOne:    rts                        ;and leave
+EndChkBButton: lda SavedJoypad1Bits
+               ora SavedJoypad2Bits       ;check to see if B button was pressed on
+               and #B_Button              ;either controller
+               beq EndExitTwo             ;branch to leave if not
+               lda #$01                   ;otherwise set world selection flag
+               sta WorldSelectEnableFlag
+               lda #$ff                   ;remove onscreen player's lives
+               sta NumberofLives
+               jsr TerminateGame          ;do sub to continue other player or end game
+EndExitTwo:    rts                        ;leave
+
+;-------------------------------------------------------------------------------------
+
+;data is used as tiles for numbers
+;that appear when you defeat enemies
+FloateyNumTileData:
+      .db $ff, $ff ;dummy
+      .db $f6, $fb ; "100"
+      .db $f7, $fb ; "200"
+      .db $f8, $fb ; "400"
+      .db $f9, $fb ; "500"
+      .db $fa, $fb ; "800"
+      .db $f6, $50 ; "1000"
+      .db $f7, $50 ; "2000"
+      .db $f8, $50 ; "4000"
+      .db $f9, $50 ; "5000"
+      .db $fa, $50 ; "8000"
+      .db $fd, $fe ; "1-UP"
+
+;high nybble is digit number, low nybble is number to
+;add to the digit of the player's score
+ScoreUpdateData:
+      .db $ff ;dummy
+      .db $41, $42, $44, $45, $48
+      .db $31, $32, $34, $35, $38, $00
+
+FloateyNumbersRoutine:
+              lda FloateyNum_Control,x     ;load control for floatey number
+              beq EndExitOne               ;if zero, branch to leave
+              cmp #$0b                     ;if less than $0b, branch
+              bcc ChkNumTimer
+              lda #$0b                     ;otherwise set to $0b, thus keeping
+              sta FloateyNum_Control,x     ;it in range
+ChkNumTimer:  tay                          ;use as Y
+              lda FloateyNum_Timer,x       ;check value here
+              bne DecNumTimer              ;if nonzero, branch ahead
+              sta FloateyNum_Control,x     ;initialize floatey number control and leave
+              rts
+DecNumTimer:  dec FloateyNum_Timer,x       ;decrement value here
+              cmp #$2b                     ;if not reached a certain point, branch  
+              bne ChkTallEnemy
+              cpy #$0b                     ;check offset for $0b
+              bne LoadNumTiles             ;branch ahead if not found
+            .IFDEF TWEAK_FIX_LIVES
+              jsr AddLife
+            .ELSE  
+              inc NumberofLives            ;give player one extra life (1-up)
+              lda #Sfx_ExtraLife
+              sta Square2SoundQueue        ;and play the 1-up sound
+            .ENDIF
+LoadNumTiles: lda ScoreUpdateData,y        ;load point value here
+              lsr                          ;move high nybble to low
+              lsr
+              lsr
+              lsr
+              tax                          ;use as X offset, essentially the digit
+              lda ScoreUpdateData,y        ;load again and this time
+              and #%00001111               ;mask out the high nybble
+              sta DigitModifier,x          ;store as amount to add to the digit
+              jsr AddToScore               ;update the score accordingly
+ChkTallEnemy: ldy Enemy_SprDataOffset,x    ;get OAM data offset for enemy object
+              lda Enemy_ID,x               ;get enemy object identifier
+              cmp #Spiny
+              beq FloateyPart              ;branch if spiny
+              cmp #PiranhaPlant
+              beq FloateyPart              ;branch if piranha plant
+              cmp #HammerBro
+              beq GetAltOffset             ;branch elsewhere if hammer bro
+              cmp #GreyCheepCheep
+              beq FloateyPart              ;branch if cheep-cheep of either color
+              cmp #RedCheepCheep
+              beq FloateyPart
+              cmp #TallEnemy
+              bcs GetAltOffset             ;branch elsewhere if enemy object => $09
+              lda Enemy_State,x
+              cmp #$02                     ;if enemy state defeated or otherwise
+              bcs FloateyPart              ;$02 or greater, branch beyond this part
+GetAltOffset: ldx SprDataOffset_Ctrl       ;load some kind of control bit
+              ldy Alt_SprDataOffset,x      ;get alternate OAM data offset
+              ldx ObjectOffset             ;get enemy object offset again
+FloateyPart:  lda FloateyNum_Y_Pos,x       ;get vertical coordinate for
+              cmp #$18                     ;floatey number, if coordinate in the
+              bcc SetupNumSpr              ;status bar, branch
+              sbc #$01
+              sta FloateyNum_Y_Pos,x       ;otherwise subtract one and store as new
+SetupNumSpr:  lda FloateyNum_Y_Pos,x       ;get vertical coordinate
+              sbc #$08                     ;subtract eight and dump into the
+              jsr DumpTwoSpr               ;left and right sprite's Y coordinates
+              lda FloateyNum_X_Pos,x       ;get horizontal coordinate
+              sta Sprite_X_Position,y      ;store into X coordinate of left sprite
+              clc
+              adc #$08                     ;add eight pixels and store into X
+              sta Sprite_X_Position+4,y    ;coordinate of right sprite
+              lda #$02
+              sta Sprite_Attributes,y      ;set palette control in attribute bytes
+              sta Sprite_Attributes+4,y    ;of left and right sprites
+              lda FloateyNum_Control,x
+              asl                          ;multiply our floatey number control by 2
+              tax                          ;and use as offset for look-up table
+              lda FloateyNumTileData,x
+              sta Sprite_Tilenumber,y      ;display first half of number of points
+              lda FloateyNumTileData+1,x
+              sta Sprite_Tilenumber+4,y    ;display the second half
+              ldx ObjectOffset             ;get enemy object offset and leave
+              rts
 
 ;-------------------------------------------------------------------------------------
 
@@ -328,19 +706,69 @@ HitLiveCap: rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines.asm"
+ScreenRoutines:
+      lda ScreenRoutineTask        ;run one of the following subroutines
+      jsr JumpEngine
+    
+      .dw InitScreen
+      .dw SetupIntermediate
+      .dw WriteTopStatusLine
+      .dw WriteBottomStatusLine
+      .dw DisplayTimeUp
+      .dw ResetSpritesAndScreenTimer
+      .dw DisplayIntermediate
+      .dw ResetSpritesAndScreenTimer
+      .dw AreaParserTaskControl
+      .dw GetAreaPalette
+      .dw GetBackgroundColor
+      .dw GetAlternatePalette
+      .dw DrawTitleScreen
+      .dw ClearBuffersDrawIcon
+      .dw WriteTopScore
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-init.asm"
+InitScreen:
+      jsr MoveAllSpritesOffscreen ;initialize all sprites including sprite #0
+      jsr InitializeNameTables    ;and erase both name and attribute tables
+      lda OperMode
+      beq NextSubtask             ;if mode still 0, do not load
+      ldx #$03                    ;into buffer pointer
+      jmp SetVRAMAddr_A
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-setupintermediate.asm"
+SetupIntermediate:
+      lda BackgroundColorCtrl  ;save current background color control
+      pha                      ;and player status to stack
+.IFNDEF TWEAK_DYNAMIC_LIVES_SCREEN
+      lda PlayerStatus
+      pha
+      lda #$00                 ;set background color to black
+      sta PlayerStatus         ;and player status to not fiery
+.ENDIF
+      lda #$02                 ;this is the ONLY time background color control
+      sta BackgroundColorCtrl  ;is set to less than 4
+      jsr GetPlayerColors
+.IFNDEF TWEAK_DYNAMIC_LIVES_SCREEN
+      pla                      ;we only execute this routine for
+      sta PlayerStatus         ;the intermediate lives display
+.ENDIF
+      pla                      ;and once we're done, we return bg
+      sta BackgroundColorCtrl  ;color ctrl and player status from stack
+      jmp IncSubtask           ;then move onto the next task
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-getareapalette.asm"
+; TO-DO: this can be replaced with incrementing x, instead of doing the lookup.
+AreaPalette:
+      .db $01, $02, $03, $04
+
+GetAreaPalette:
+               ldy AreaType             ;select appropriate palette to load
+               ldx AreaPalette,y        ;based on area type
+SetVRAMAddr_A: stx VRAM_Buffer_AddrCtrl ;store offset into buffer control
+NextSubtask:   jmp IncSubtask           ;move onto next task
 
 ;-------------------------------------------------------------------------------------
 ;$00 - used as temp counter in GetPlayerColors
@@ -364,7 +792,12 @@ PlayerColors:
       .db $22, $37, $27, $16 ;fiery (used by both)
 .ENDIF
 
-.INCLUDE "screenroutines-getbackgroundcolor.asm"
+GetBackgroundColor:
+           ldy BackgroundColorCtrl   ;check background color control
+           beq NoBGColor             ;if not set, increment task and fetch palette
+           lda BGColorCtrl_Addr-4,y  ;put appropriate palette into vram
+           sta VRAM_Buffer_AddrCtrl  ;note that if set to 5-7, $0301 will not be read
+NoBGColor: inc ScreenRoutineTask     ;increment to next subtask and plod on through
       
 GetPlayerColors:
                ldx VRAM_Buffer1_Offset  ;get current buffer offset
@@ -415,49 +848,269 @@ SetVRAMOffset: sta VRAM_Buffer1_Offset  ;store as new vram buffer offset
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-getalternatepalette.asm"
+GetAlternatePalette:
+               lda AreaStyle            ;check for mushroom level style
+               cmp #$01
+               bne NoAltPal
+               lda #$0b                 ;if found, load appropriate palette
+SetVRAMAddr_B: sta VRAM_Buffer_AddrCtrl
+NoAltPal:      jmp IncSubtask           ;now onto the next task
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-writetopstatusline.asm"
+WriteTopStatusLine:
+      lda #$00          ;select main status bar
+      jsr WriteGameText ;output it
+      jmp IncSubtask    ;onto the next task
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-writebottomstatusline.asm"
+WriteBottomStatusLine:
+      jsr GetSBNybbles        ;write player's score and coin tally to screen
+      ldx VRAM_Buffer1_Offset
+      lda #$20                ;write address for world-area number on screen
+      sta VRAM_Buffer1,x
+      lda #$73
+      sta VRAM_Buffer1+1,x
+      lda #$03                ;write length for it
+      sta VRAM_Buffer1+2,x
+      ldy WorldNumber         ;first the world number
+      iny
+      tya
+      sta VRAM_Buffer1+3,x
+      lda #$28                ;next the dash
+      sta VRAM_Buffer1+4,x
+      ldy LevelNumber         ;next the level number
+      iny                     ;increment for proper number display
+      tya
+      sta VRAM_Buffer1+5,x    
+      lda #$00                ;put null terminator on
+      sta VRAM_Buffer1+6,x
+      txa                     ;move the buffer offset up by 6 bytes
+      clc
+      adc #$06
+      sta VRAM_Buffer1_Offset
+      jmp IncSubtask
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-displaytimeup.asm"
+DisplayTimeUp:
+          lda GameTimerExpiredFlag  ;if game timer not expired, increment task
+          beq NoTimeUp              ;control 2 tasks forward, otherwise, stay here
+          lda #$00
+          sta GameTimerExpiredFlag  ;reset timer expiration flag
+          lda #$02                  ;output time-up screen to buffer
+          jmp OutputInter
+NoTimeUp: inc ScreenRoutineTask     ;increment control task 2 tasks forward
+          jmp IncSubtask
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-displayintermediate.asm"
+DisplayIntermediate:
+               lda OperMode                 ;check primary mode of operation
+               beq NoInter                  ;if in title screen mode, skip this
+               cmp #GameOverModeValue       ;are we in game over mode?
+               beq GameOverInter            ;if so, proceed to display game over screen
+               lda AltEntranceControl       ;otherwise check for mode of alternate entry
+               bne NoInter                  ;and branch if found
+            .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+               ldy AreaType                 ;check if we are on castle level
+               cpy #$03                     ;and if so, branch (possibly residual)
+               beq PlayerInter
+            .ENDIF
+               lda DisableIntermediate      ;if this flag is set, skip intermediate lives display
+               bne NoInter                  ;and jump to specific task, otherwise
+PlayerInter:   jsr DrawPlayer_Intermediate  ;put player in appropriate place for
+               lda #$01                     ;lives display, then output lives display to buffer
+OutputInter:   jsr WriteGameText
+               jsr ResetScreenTimer
+               lda #$00
+               sta DisableScreenFlag        ;reenable screen output
+               rts
+GameOverInter: lda #$12                     ;set screen timer
+               sta ScreenTimer
+               lda #$03                     ;output game over screen to buffer
+               jsr WriteGameText
+               jmp IncModeTask_B
+NoInter:       lda #$08                     ;set for specific task and leave
+               sta ScreenRoutineTask
+               rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-areaparsertaskcontrol.asm"
+AreaParserTaskControl:
+           inc DisableScreenFlag     ;turn off screen
+TaskLoop:  jsr AreaParserTaskHandler ;render column set of current area
+           lda AreaParserTaskNum     ;check number of tasks
+           bne TaskLoop              ;if tasks still not all done, do another one
+           dec ColumnSets            ;do we need to render more column sets?
+           bpl OutputCol
+           inc ScreenRoutineTask     ;if not, move on to the next task
+OutputCol: lda #$06                  ;set vram buffer to output rendered column set
+           sta VRAM_Buffer_AddrCtrl  ;on next NMI
+           rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-drawtitlescreen.asm"
+;$00 - vram buffer address table low
+;$01 - vram buffer address table high
+
+DrawTitleScreen:
+            lda OperMode                 ;are we in title screen mode?
+            bne IncModeTask_B            ;if not, exit
+            lda #>TitleScreenDataOffset  ;load address $1ec0 into
+            sta PPU_ADDRESS              ;the vram address register
+            lda #<TitleScreenDataOffset
+            sta PPU_ADDRESS
+            lda #$03                     ;put address $0300 into
+            sta $01                      ;the indirect at $00
+            ldy #$00
+            sty $00
+            lda PPU_DATA                 ;do one garbage read
+OutputTScr: lda PPU_DATA                 ;get title screen from chr-rom
+            sta ($00),y                  ;store 256 bytes into buffer
+            iny
+            bne ChkHiByte                ;if not past 256 bytes, do not increment
+            inc $01                      ;otherwise increment high byte of indirect
+ChkHiByte:  lda $01                      ;check high byte?
+            cmp #$04                     ;at $0400?
+            bne OutputTScr               ;if not, loop back and do another
+            cpy #$3a                     ;check if offset points past end of data
+            bcc OutputTScr               ;if not, loop back and do another
+            lda #$05                     ;set buffer transfer control to $0300,
+            jmp SetVRAMAddr_B            ;increment task and exit
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-clearbuffersdrawicon.asm"
+ClearBuffersDrawIcon:
+             lda OperMode               ;check game mode
+             bne IncModeTask_B          ;if not title screen mode, leave
+             ldx #$00                   ;otherwise, clear buffer space
+TScrClear:   sta VRAM_Buffer1-1,x
+             sta VRAM_Buffer1-1+$100,x
+             dex
+             bne TScrClear
+             jsr DrawMushroomIcon       ;draw player select icon
+IncSubtask:  inc ScreenRoutineTask      ;move onto next task
+             rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-writetopscore.asm"
+WriteTopScore:
+               lda #$fa           ;run display routine to display top score on title
+               jsr UpdateNumber
+IncModeTask_B: inc OperMode_Task  ;move onto next mode
+               rts
 
 ;-------------------------------------------------------------------------------------
 
 .INCLUDE "data-text.asm"
 
-.INCLUDE "write-text.asm"
+WriteGameText:
+               pha                      ;save text number to stack
+               asl
+               tay                      ;multiply by 2 and use as offset
+               cpy #$04                 ;if set to do top status bar or world/lives display,
+               bcc LdGameText           ;branch to use current offset as-is
+               cpy #$08                 ;if set to do time-up or game over,
+               bcc Chk2Players          ;branch to check players
+               ldy #$08                 ;otherwise warp zone, therefore set offset
+Chk2Players:   lda NumberOfPlayers      ;check for number of players
+               bne LdGameText           ;if there are two, use current offset to also print name
+               iny                      ;otherwise increment offset by one to not print name
+LdGameText:    ldx GameTextOffsets,y    ;get offset to message we want to print
+               ldy #$00
+GameTextLoop:  lda GameText,x           ;load message data
+               cmp #$ff                 ;check for terminator
+               beq EndGameText          ;branch to end text if found
+               sta VRAM_Buffer1,y       ;otherwise write data to buffer
+               inx                      ;and increment increment
+               iny
+               bne GameTextLoop         ;do this for 256 bytes if no terminator found
+EndGameText:   lda #$00                 ;put null terminator at end
+               sta VRAM_Buffer1,y
+               pla                      ;pull original text number from stack
+               tax
+               cmp #$04                 ;are we printing warp zone?
+               bcs PrintWarpZoneNumbers
+               dex                      ;are we printing the world/lives display?
+               bne CheckPlayerName      ;if not, branch to check player's name
+               lda NumberofLives        ;otherwise, check number of lives
+               clc                      ;and increment by one for display
+               adc #$01
+            .IFDEF TWEAK_FIX_LIVES
+               ldy #$00
+LivesLoop:     cmp #10                  ;more than 9 lives in y?
+               bcc PutLives
+               sbc #10                  ;if so, subtract 10 and
+               iny                      ;increment the left digit
+               sty VRAM_Buffer1+7  
+               bne LivesLoop 
+            .ELSE
+               cmp #10                  ;more than 9 lives?
+               bcc PutLives
+               sbc #10                  ;if so, subtract 10 and put a crown tile
+               ldy #$9f                 ;next to the difference...strange things happen if
+               sty VRAM_Buffer1+7       ;the number of lives exceeds 19
+            .ENDIF
+PutLives:      sta VRAM_Buffer1+8
+               ldy WorldNumber          ;write world and level numbers (incremented for display)
+               iny                      ;to the buffer in the spaces surrounding the dash
+               sty VRAM_Buffer1+19
+               ldy LevelNumber
+               iny
+               sty VRAM_Buffer1+21      ;we're done here
+               rts
+
+CheckPlayerName:
+             lda NumberOfPlayers    ;check number of players
+             beq ExitChkName        ;if only 1 player, leave
+             lda CurrentPlayer      ;load current player
+             dex                    ;check to see if current message number is for time up
+             bne ChkLuigi
+             ldy OperMode           ;check for game over mode
+             cpy #GameOverModeValue
+             beq ChkLuigi
+             eor #%00000001         ;if not, must be time up, invert d0 to do other player
+ChkLuigi:    lsr
+             bcc ExitChkName        ;if mario is current player, do not change the name
+             ldy #$04
+NameLoop:    lda LuigiName,y        ;otherwise, replace "MARIO" with "LUIGI"
+             sta VRAM_Buffer1+3,y
+             dey
+             bpl NameLoop           ;do this until each letter is replaced
+ExitChkName: rts
+
+PrintWarpZoneNumbers:
+             sbc #$04               ;subtract 4 and then shift to the left
+             asl                    ;twice to get proper warp zone number
+             asl                    ;offset
+             tax
+             ldy #$00
+WarpNumLoop: lda WarpZoneNumbers,x  ;print warp zone numbers into the
+             sta VRAM_Buffer1+27,y  ;placeholders from earlier
+             inx
+             iny                    ;put a number in every fourth space
+             iny
+             iny
+             iny
+             cpy #$0c
+             bcc WarpNumLoop
+             lda #$2c               ;load new buffer pointer at end of message
+             jmp SetVRAMOffset
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "screenroutines-resetspritesandscreentimer.asm"
+ResetSpritesAndScreenTimer:
+         lda ScreenTimer             ;check if screen timer has expired
+         bne NoReset                 ;if not, branch to leave
+         jsr MoveAllSpritesOffscreen ;otherwise reset sprites now
+
+ResetScreenTimer:
+         lda #$07                    ;reset timer again
+         sta ScreenTimer
+         inc ScreenRoutineTask       ;move onto next task
+NoReset: rts
 
 ;-------------------------------------------------------------------------------------
 ;$00 - temp vram buffer offset
@@ -1076,17 +1729,126 @@ Sprite0Data:
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-titlescreen-initialize.asm"
+InitializeGame:
+             ldy #$6f              ;clear all memory as in initialization procedure,
+             jsr InitializeMemory  ;but this time, clear only as far as $076f
+             ldy #$1f
+ClrSndLoop:  sta SoundMemory,y     ;clear out memory used
+             dey                   ;by the sound engines
+             bpl ClrSndLoop
+             lda #$18              ;set demo timer
+             sta DemoTimer
+             jsr LoadAreaPointer
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-game-initialize-area.asm"
+InitializeArea:
+               ldy #$4b                 ;clear all memory again, only as far as $074b
+               jsr InitializeMemory     ;this is only necessary in game mode
+               ldx #$21
+               lda #$00
+ClrTimersLoop: sta Timers,x             ;clear out memory between
+               dex                      ;$0780 and $07a1
+               bpl ClrTimersLoop
+               lda HalfwayPage
+               ldy AltEntranceControl   ;if AltEntranceControl not set, use halfway page, if any found
+               beq StartPage
+               lda EntrancePage         ;otherwise use saved entry page number here
+StartPage:     sta ScreenLeft_PageLoc   ;set as value here
+               sta CurrentPageLoc       ;also set as current page
+               sta BackloadingFlag      ;set flag here if halfway page or saved entry page number found
+               jsr GetScreenPosition    ;get pixel coordinates for screen borders
+               ldy #$20                 ;if on odd numbered page, use $2480 as start of rendering
+               and #%00000001           ;otherwise use $2080, this address used later as name table
+               beq SetInitNTHigh        ;address for rendering of game area
+               ldy #$24
+SetInitNTHigh: sty CurrentNTAddr_High   ;store name table address
+               ldy #$80
+               sty CurrentNTAddr_Low
+               asl                      ;store LSB of page number in high nybble
+               asl                      ;of block buffer column position
+               asl
+               asl
+               sta BlockBufferColumnPos
+               dec AreaObjectLength     ;set area object lengths for all empty
+               dec AreaObjectLength+1
+               dec AreaObjectLength+2
+               lda #$0b                 ;set value for renderer to update 12 column sets
+               sta ColumnSets           ;12 column sets = 24 metatile columns = 1 1/2 screens
+               jsr GetAreaDataAddrs     ;get enemy and level addresses and load header
+               lda PrimaryHardMode      ;check to see if primary hard mode has been activated
+               bne SetSecHard           ;if so, activate the secondary no matter where we're at
+               lda WorldNumber          ;otherwise check world number
+               cmp #World5              ;if less than 5, do not activate secondary
+               bcc CheckHalfway
+               bne SetSecHard           ;if not equal to, then world > 5, thus activate
+               lda LevelNumber          ;otherwise, world 5, so check level number
+               cmp #Level3              ;if 1 or 2, do not set secondary hard mode flag
+               bcc CheckHalfway
+SetSecHard:    inc SecondaryHardMode    ;set secondary hard mode flag for areas 5-3 and beyond
+CheckHalfway:  lda HalfwayPage
+               beq DoneInitArea
+               lda #$02                 ;if halfway page set, overwrite start position from header
+               sta PlayerEntranceCtrl
+DoneInitArea:  lda #Silence             ;silence music
+               sta AreaMusicQueue
+               lda #$01                 ;disable screen output
+               sta DisableScreenFlag
+               inc OperMode_Task        ;increment one of the modes
+               rts
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-titlescreen-primary-setup.asm"
+PrimaryGameSetup:
+      lda #$01
+      sta FetchNewGameTimerFlag   ;set flag to load game timer from header
+      sta PlayerSize              ;set player's size to small
+      lda #$02
+      sta NumberofLives           ;give each player three lives
+      sta OffScr_NumberofLives
+    
 
-.INCLUDE "mode-game-secondary-setup.asm"
+SecondaryGameSetup:
+             lda #$00
+             sta DisableScreenFlag     ;enable screen output
+             tay
+ClearVRLoop: sta VRAM_Buffer1-1,y      ;clear buffer at $0300-$03ff
+             iny
+             bne ClearVRLoop
+             sta GameTimerExpiredFlag  ;clear game timer exp flag
+             sta DisableIntermediate   ;clear skip lives display flag
+             sta BackloadingFlag       ;clear value here
+             lda #$ff
+             sta BalPlatformAlignment  ;initialize balance platform assignment flag
+             lda ScreenLeft_PageLoc    ;get left side page location
+             lsr Mirror_PPU_CTRL_REG1  ;shift LSB of ppu register #1 mirror out
+             and #$01                  ;mask out all but LSB of page location
+             ror                       ;rotate LSB of page location into carry then onto mirror
+             rol Mirror_PPU_CTRL_REG1  ;this is to set the proper PPU name table
+             jsr GetAreaMusic          ;load proper music into queue
+             lda #$38                  ;load sprite shuffle amounts to be used later
+             sta SprShuffleAmt+2
+             lda #$48
+             sta SprShuffleAmt+1
+             lda #$58
+             sta SprShuffleAmt
+             ldx #$0e                  ;load default OAM offsets into $06e4-$06f2
+ShufAmtLoop: lda DefaultSprOffsets,x
+             sta SprDataOffset,x
+             dex                       ;do this until they're all set
+             bpl ShufAmtLoop
+             ldy #$03                  ;set up sprite #0
+ISpr0Loop:   lda Sprite0Data,y
+             sta Sprite_Data,y
+             dey
+             bpl ISpr0Loop
+            .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+             jsr DoNothing2            ;these jsrs doesn't do anything useful
+             jsr DoNothing1
+            .ENDIF
+             inc Sprite0HitDetectFlag  ;set sprite #0 check flag
+             inc OperMode_Task         ;increment to next task
+             rts
 
 ;-------------------------------------------------------------------------------------
 
@@ -2731,7 +3493,9 @@ StoreStyle: sta AreaStyle
             rts
 
 ;-------------------------------------------------------------------------------------
+
 .INCLUDE "data-levels.asm"
+
 ;-------------------------------------------------------------------------------------
 .IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ;unused space
@@ -2739,13 +3503,93 @@ StoreStyle: sta AreaStyle
 .ENDIF
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-game.asm"
+;indirect jump routine called when
+;$0770 is set to 1
+GameMode:
+      lda OperMode_Task
+      jsr JumpEngine
+
+      .dw InitializeArea
+      .dw ScreenRoutines
+      .dw SecondaryGameSetup
+      .dw GameCoreRoutine
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "mode-game-core.asm"
+GameCoreRoutine:
+      ldx CurrentPlayer          ;get which player is on the screen
+      lda SavedJoypadBits,x      ;use appropriate player's controller bits
+      sta SavedJoypadBits        ;as the master controller bits
+      jsr GameRoutines           ;execute one of many possible subs
+      lda OperMode_Task          ;check major task of operating mode
+      cmp #$03                   ;if we are supposed to be here,
+      bcs GameEngine             ;branch to the game engine itself
+      rts
 
-.INCLUDE "engine.asm"
+GameEngine:
+              jsr ProcFireball_Bubble    ;process fireballs and air bubbles
+              ldx #$00
+ProcELoop:    stx ObjectOffset           ;put incremented offset in X as enemy object offset
+              jsr EnemiesAndLoopsCore    ;process enemy objects
+              jsr FloateyNumbersRoutine  ;process floatey numbers
+              inx
+              cpx #$06                   ;do these two subroutines until the whole buffer is done
+              bne ProcELoop
+              jsr GetPlayerOffscreenBits ;get offscreen bits for player object
+              jsr RelativePlayerPosition ;get relative coordinates for player object
+              jsr PlayerGfxHandler       ;draw the player
+              jsr BlockObjMT_Updater     ;replace block objects with metatiles if necessary
+              ldx #$01
+              stx ObjectOffset           ;set offset for second
+              jsr BlockObjectsCore       ;process second block object
+              dex
+              stx ObjectOffset           ;set offset for first
+              jsr BlockObjectsCore       ;process first block object
+              jsr MiscObjectsCore        ;process misc objects (hammer, jumping coins)
+              jsr ProcessCannons         ;process bullet bill cannons
+              jsr ProcessWhirlpools      ;process whirlpools
+              jsr FlagpoleRoutine        ;process the flagpole
+              jsr RunGameTimer           ;count down the game timer
+              jsr ColorRotation          ;cycle one of the background colors
+              lda Player_Y_HighPos
+              cmp #$02                   ;if player is below the screen, don't bother with the music
+              bpl NoChgMus
+              lda StarInvincibleTimer    ;if star mario invincibility timer at zero,
+              beq ClrPlrPal              ;skip this part
+              cmp #$04
+              bne NoChgMus               ;if not yet at a certain point, continue
+              lda IntervalTimerControl   ;if interval timer not yet expired,
+              bne NoChgMus               ;branch ahead, don't bother with the music
+              jsr GetAreaMusic           ;to re-attain appropriate level music
+NoChgMus:     ldy StarInvincibleTimer    ;get invincibility timer
+              lda FrameCounter           ;get frame counter
+              cpy #$08                   ;if timer still above certain point,
+              bcs CycleTwo               ;branch to cycle player's palette quickly
+              lsr                        ;otherwise, divide by 8 to cycle every eighth frame
+              lsr
+CycleTwo:     lsr                        ;if branched here, divide by 2 to cycle every other frame
+              jsr CyclePlayerPalette     ;do sub to cycle the palette (note: shares fire flower code)
+              jmp SaveAB                 ;then skip this sub to finish up the game engine
+ClrPlrPal:    jsr ResetPalStar           ;do sub to clear player's palette bits in attributes
+SaveAB:       lda A_B_Buttons            ;save current A and B button
+              sta PreviousA_B_Buttons    ;into temp variable to be used on next frame
+              lda #$00
+              sta Left_Right_Buttons     ;nullify left and right buttons temp variable
+UpdScrollVar: lda VRAM_Buffer_AddrCtrl
+              cmp #$06                   ;if vram address controller set to 6 (one of two $0341s)
+              beq ExitEng                ;then branch to leave
+              lda AreaParserTaskNum      ;otherwise check number of tasks
+              bne RunParser
+              lda ScrollThirtyTwo        ;get horizontal scroll in 0-31 or $00-$20 range
+              cmp #$20                   ;check to see if exceeded $21
+              bmi ExitEng                ;branch to leave if not
+              lda ScrollThirtyTwo
+              sbc #$20                   ;otherwise subtract $20 to set appropriately
+              sta ScrollThirtyTwo        ;and store
+              lda #$00                   ;reset vram buffer offset used in conjunction with
+              sta VRAM_Buffer2_Offset    ;level graphics buffer at $0341-$035f
+RunParser:    jsr AreaParserTaskHandler  ;update the name table with more level graphics
+ExitEng:      rts                        ;and after all that, we're finally done!
 
 ;-------------------------------------------------------------------------------------
 
@@ -3688,7 +4532,170 @@ SetAbsSpd: sta Player_XSpeedAbsolute ;store walking/running speed here and leave
 
 ;-------------------------------------------------------------------------------------
 
-.INCLUDE "engine-fireball-bubble.asm"
+;$00 - used to store downward movement force in FireballObjCore
+;$02 - used to store maximum vertical speed in FireballObjCore
+;$07 - used to store pseudorandom bit in BubbleCheck
+
+ProcFireball_Bubble:
+      lda PlayerStatus           ;check player's status
+      cmp #$02
+      bcc ProcAirBubbles         ;if not fiery, branch
+      lda A_B_Buttons
+      and #B_Button              ;check for b button pressed
+      beq ProcFireballs          ;branch if not pressed
+      and PreviousA_B_Buttons
+      bne ProcFireballs          ;if button pressed in previous frame, branch
+      lda FireballCounter        ;load fireball counter
+      and #%00000001             ;get LSB and use as offset for buffer
+      tax
+      lda Fireball_State,x       ;load fireball state
+      bne ProcFireballs          ;if not inactive, branch
+      ldy Player_Y_HighPos       ;if player too high or too low, branch
+      dey
+      bne ProcFireballs
+      lda CrouchingFlag          ;if player crouching, branch
+      bne ProcFireballs
+      lda Player_State           ;if player's state = climbing, branch
+      cmp #$03
+      beq ProcFireballs
+      lda #Sfx_Fireball          ;play fireball sound effect
+      sta Square1SoundQueue
+      lda #$02                   ;load state
+      sta Fireball_State,x
+      ldy PlayerAnimTimerSet     ;copy animation frame timer setting
+      sty FireballThrowingTimer  ;into fireball throwing timer
+      dey
+      sty PlayerAnimTimer        ;decrement and store in player's animation timer
+      inc FireballCounter        ;increment fireball counter
+
+ProcFireballs:
+      ldx #$00
+      jsr FireballObjCore  ;process first fireball object
+      ldx #$01
+      jsr FireballObjCore  ;process second fireball object, then do air bubbles
+
+ProcAirBubbles:
+          lda AreaType                ;if not water type level, skip the rest of this
+          bne BublExit
+          ldx #$02                    ;otherwise load counter and use as offset
+BublLoop: stx ObjectOffset            ;store offset
+          jsr BubbleCheck             ;check timers and coordinates, create air bubble
+          jsr RelativeBubblePosition  ;get relative coordinates
+          jsr GetBubbleOffscreenBits  ;get offscreen information
+          jsr DrawBubble              ;draw the air bubble
+          dex
+          bpl BublLoop                ;do this until all three are handled
+BublExit: rts                         ;then leave
+
+FireballXSpdData:
+      .db $40, $c0
+
+FireballObjCore:
+         stx ObjectOffset             ;store offset as current object
+         lda Fireball_State,x         ;check for d7 = 1
+         asl
+         bcs FireballExplosion        ;if so, branch to get relative coordinates and draw explosion
+         ldy Fireball_State,x         ;if fireball inactive, branch to leave
+         beq NoFBall
+         dey                          ;if fireball state set to 1, skip this part and just run it
+         beq RunFB
+         lda Player_X_Position        ;get player's horizontal position
+         adc #$04                     ;add four pixels and store as fireball's horizontal position
+         sta Fireball_X_Position,x
+         lda Player_PageLoc           ;get player's page location
+         adc #$00                     ;add carry and store as fireball's page location
+         sta Fireball_PageLoc,x
+         lda Player_Y_Position        ;get player's vertical position and store
+         sta Fireball_Y_Position,x
+         lda #$01                     ;set high byte of vertical position
+         sta Fireball_Y_HighPos,x
+         ldy PlayerFacingDir          ;get player's facing direction
+         dey                          ;decrement to use as offset here
+         lda FireballXSpdData,y       ;set horizontal speed of fireball accordingly
+         sta Fireball_X_Speed,x
+         lda #$04                     ;set vertical speed of fireball
+         sta Fireball_Y_Speed,x
+         lda #$07
+         sta Fireball_BoundBoxCtrl,x  ;set bounding box size control for fireball
+         dec Fireball_State,x         ;decrement state to 1 to skip this part from now on
+RunFB:   txa                          ;add 7 to offset to use
+         clc                          ;as fireball offset for next routines
+         adc #$07
+         tax
+         lda #$50                     ;set downward movement force here
+         sta $00
+         lda #$03                     ;set maximum speed here
+         sta $02
+         lda #$00
+         jsr ImposeGravity            ;do sub here to impose gravity on fireball and move vertically
+         jsr MoveObjectHorizontally   ;do another sub to move it horizontally
+         ldx ObjectOffset             ;return fireball offset to X
+         jsr RelativeFireballPosition ;get relative coordinates
+         jsr GetFireballOffscreenBits ;get offscreen information
+         jsr GetFireballBoundBox      ;get bounding box coordinates
+         jsr FireballBGCollision      ;do fireball to background collision detection
+         lda FBall_OffscreenBits      ;get fireball offscreen bits
+         and #%11001100               ;mask out certain bits
+         bne EraseFB                  ;if any bits still set, branch to kill fireball
+         jsr FireballEnemyCollision   ;do fireball to enemy collision detection and deal with collisions
+         jmp DrawFireball             ;draw fireball appropriately and leave
+EraseFB: lda #$00                     ;erase fireball state
+         sta Fireball_State,x
+NoFBall: rts                          ;leave
+
+FireballExplosion:
+      jsr RelativeFireballPosition
+      jmp DrawExplosion_Fireball
+
+BubbleCheck:
+      lda PseudoRandomBitReg+1,x  ;get part of LSFR
+      and #$01
+      sta $07                     ;store pseudorandom bit here
+      lda Bubble_Y_Position,x     ;get vertical coordinate for air bubble
+      cmp #$f8                    ;if offscreen coordinate not set,
+      bne MoveBubl                ;branch to move air bubble
+      lda AirBubbleTimer          ;if air bubble timer not expired,
+      bne ExitBubl                ;branch to leave, otherwise create new air bubble
+
+SetupBubble:
+          ldy #$00                 ;load default value here
+          lda PlayerFacingDir      ;get player's facing direction
+          lsr                      ;move d0 to carry
+          bcc PosBubl              ;branch to use default value if facing left
+          ldy #$08                 ;otherwise load alternate value here
+PosBubl:  tya                      ;use value loaded as adder
+          adc Player_X_Position    ;add to player's horizontal position
+          sta Bubble_X_Position,x  ;save as horizontal position for airbubble
+          lda Player_PageLoc
+          adc #$00                 ;add carry to player's page location
+          sta Bubble_PageLoc,x     ;save as page location for airbubble
+          lda Player_Y_Position
+          clc                      ;add eight pixels to player's vertical position
+          adc #$08
+          sta Bubble_Y_Position,x  ;save as vertical position for air bubble
+          lda #$01
+          sta Bubble_Y_HighPos,x   ;set vertical high byte for air bubble
+          ldy $07                  ;get pseudorandom bit, use as offset
+          lda BubbleTimerData,y    ;get data for air bubble timer
+          sta AirBubbleTimer       ;set air bubble timer
+MoveBubl: ldy $07                  ;get pseudorandom bit again, use as offset
+          lda Bubble_YMF_Dummy,x
+          sec                      ;subtract pseudorandom amount from dummy variable
+          sbc Bubble_MForceData,y
+          sta Bubble_YMF_Dummy,x   ;save dummy variable
+          lda Bubble_Y_Position,x
+          sbc #$00                 ;subtract borrow from airbubble's vertical coordinate
+          cmp #$20                 ;if below the status bar,
+          bcs Y_Bubl               ;branch to go ahead and use to move air bubble upwards
+          lda #$f8                 ;otherwise set offscreen coordinate
+Y_Bubl:   sta Bubble_Y_Position,x  ;store as new vertical coordinate for air bubble
+ExitBubl: rts                      ;leave
+
+Bubble_MForceData:
+      .db $ff, $50
+
+BubbleTimerData:
+      .db $40, $20
 
 ;-------------------------------------------------------------------------------------
 
