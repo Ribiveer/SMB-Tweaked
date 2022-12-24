@@ -3977,10 +3977,12 @@ VerticalPipeEntry:
 
 .IF TWEAK_REROUTE_MINUS_WORLD_TO_BOWSERS_SEWAGE
 WarpZoneChgAreaPipe:
-      lda WorldNumber
-      cmp #$07
-      bne ChgAreaPipe
-      ldy #$02
+      cmp #$01             ;if we're not in the warp zone of world 5
+      bne ChgAreaPipe      ;we're good to go
+      lda WorldNumber      ;if we're not going to world 8
+      cmp #$07             
+      bne ChgAreaPipe      ;we're also good to go
+      ldy #$02             ;otherwise, we're going to the sewage and need to go out of a pipe: entry mode 2
       bne ChgAreaPipe
 .ENDIF
 
