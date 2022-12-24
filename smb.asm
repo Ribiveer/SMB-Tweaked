@@ -6673,20 +6673,25 @@ DifLoop:  lda PRDiffAdjustData,y     ;get three values and save them
           eor #%11111111             ;otherwise get two's compliment of Y
           tay
           iny
-UsePosv:  tya                        ;put value from A in Y back to A (they will be lost anyway)
+UsePosv:  tya                        ;put value from A in Y back to A
 SetSpSpd: 
-      .IF !TWEAK_FIX_SPINY_VELOCITY
+      .IF TWEAK_FIX_SPINY_VELOCITY
+          ldy #$02                   ;moving direction is to the left (for now)
+          sta Enemy_X_Speed,x        ;set horizontal speed
+          cmp #$00                   ;focus our sights on the A accumulator again. (STA doesn't set N register)
+          bmi SpinyRte               ;if our speed is negative, skip
+          dey                        ;moving direction is to the right
+SpinyRte: jsr SmallBBox              ;set bounding box control, init attributes
+          sty Enemy_MovingDir,x      ;set moving direction to the right
+      .ELSE
           jsr SmallBBox              ;set bounding box control, init attributes, lose contents of A
-      .ENDIF
           ldy #$02                   ;(putting this call elsewhere will preserve A)
           sta Enemy_X_Speed,x        ;set horizontal speed to zero because previous contents
           cmp #$00                   ;of A were lost...branch here will never be taken for
           bmi SpinyRte               ;the same reason
           dey
-      .IF TWEAK_FIX_SPINY_VELOCITY
-          jsr SmallBBox              ;set bounding box control, init attributes, lose contents of A
-      .ENDIF
 SpinyRte: sty Enemy_MovingDir,x      ;set moving direction to the right
+      .ENDIF
           lda #$fd
           sta Enemy_Y_Speed,x        ;set vertical speed to move upwards
           lda #$01
@@ -7674,12 +7679,17 @@ ReviveStunned:
          lda EnemyIntervalTimer,x  ;if enemy timer not expired yet,
          bne ChkKillGoomba         ;skip ahead to something else
          sta Enemy_State,x         ;otherwise initialize enemy state to normal
+      .IF TWEAK_MODERN_ENEMY_MOVEMENT
+         ldy Enemy_MovingDir,x     ;get enemy movement direction
+         dey                       ;decrement for use as pointer
+      .ELSE
          lda FrameCounter
          and #$01                  ;get d0 of frame counter
          tay                       ;use as Y and increment for movement direction
          iny
          sty Enemy_MovingDir,x     ;store as pseudorandom movement direction
          dey                       ;decrement for use as pointer
+      .ENDIF
          lda PrimaryHardMode       ;check primary hard mode flag
          beq SetRSpd               ;if not set, use pointer as-is
          iny
@@ -9763,6 +9773,9 @@ ChkETmrs: lda StompTimer         ;check stomp timer
           bne EnemyStomped       ;branch if set
           lda InjuryTimer        ;check to see if injured invincibility timer still
           bne ExInjColRoutines   ;counting down, and branch elsewhere to leave if so
+      .IF TWEAK_MODERN_ENEMY_MOVEMENT
+          beq InjurePlayer       ;hurt the player.
+      .ELSE
           lda Player_Rel_XPos
           cmp Enemy_Rel_XPos     ;if player's relative position to the left of enemy's
           bcc TInjE              ;relative position, branch here
@@ -9771,6 +9784,8 @@ TInjE:    lda Enemy_MovingDir,x  ;if enemy moving towards the left,
           cmp #$01               ;branch, otherwise do a jump here
           bne InjurePlayer       ;to turn the enemy around
           jmp LInj
+      .ENDIF
+      
 
 InjurePlayer:
       lda InjuryTimer          ;check again to see if injured invincibility timer is
@@ -9867,7 +9882,7 @@ EnemyStompedPts:
       jsr InitVStf               ;nullify vertical speed, physics-related thing,
       sta Enemy_X_Speed,x        ;and horizontal speed
 .IF TWEAK_MODERN_ENEMY_BOUNCE
-      jmp HandleStomp            ;do the player bouncing logic
+      jmp SBnce                  ;do the player bouncing logic
 .ELSE
       lda #$fd                   ;set player's vertical speed, to give bounce
       sta Player_Y_Speed
@@ -9884,16 +9899,14 @@ ChkForDemoteKoopa:
       lda #$03                   ;award 400 points to the player
       jsr SetupFloateyNumber
       jsr InitVStf               ;nullify physics-related thing and vertical speed
+.IF TWEAK_MODERN_ENEMY_MOVEMENT    
+      inc StompTimer             ;make sure we hear the stomp sound.
+.ELSE
       jsr EnemyFacePlayer        ;turn enemy around if necessary
       lda DemotedKoopaXSpdData,y
       sta Enemy_X_Speed,x        ;set appropriate moving speed based on direction
-.IF TWEAK_MODERN_ENEMY_BOUNCE
-      jmp HandleStomp
-StompHigh:
-      jmp InitJS                 ;secretly, stomping high is just jumping.
-.ELSE
-      jmp SBnce                  ;then bounce the player
 .ENDIF
+      jmp SBnce                  ;then bounce the player
 
 RevivalRateData:
       .db $10, $0b
@@ -9913,6 +9926,7 @@ HandleStomp:
        lda RevivalRateData,y      ;load timer setting according to flag
        sta EnemyIntervalTimer,x   ;set as enemy timer to revive stomped enemy
 
+SBnce:
 .IF TWEAK_MODERN_ENEMY_BOUNCE
       lda SavedJoypadBits
       and #A_Button              ;if the A button is pressed,
@@ -9920,12 +9934,17 @@ HandleStomp:
       lda #$fc                   ;otherwise, set normal bounce momentum
       sta Player_Y_Speed
       rts
+StompHigh:
+      lda #$1f                    ;get the highest jumping speed, by tricking
+      sta Player_XSpeedAbsolute   ;the jump function into thinking we're going fast.
+      jmp InitJS                  ;secretly, stomping high is just jumping.
 .ELSE
-SBnce: lda #$fc                   ;set player's vertical speed for bounce
+       lda #$fc                   ;set player's vertical speed for bounce
        sta Player_Y_Speed         ;and then leave!!!
        rts
 .ENDIF
 
+.IF !TWEAK_MODERN_ENEMY_MOVEMENT
 ChkEnemyFaceRight:
        lda Enemy_MovingDir,x ;check to see if enemy is moving to the right
        cmp #$01
@@ -9933,7 +9952,7 @@ ChkEnemyFaceRight:
        jmp InjurePlayer      ;otherwise go back to hurt player
 LInj:  jsr EnemyTurnAround   ;turn the enemy around, if necessary
        jmp InjurePlayer      ;go back to hurt player
-
+.ENDIF
 
 EnemyFacePlayer:
        ldy #$01               ;set to move right by default
@@ -10985,6 +11004,16 @@ SetForStn: sta EnemyIntervalTimer,x  ;set timer here
 ExSteChk:  rts                       ;then leave
 
 ProcEnemyDirection:
+.IF TWEAK_MODERN_ENEMY_MOVEMENT
+         lda #$08
+         sta Enemy_X_Speed,x       ;set horizontal speed to the right
+         ldy Enemy_MovingDir,x     ;load enemy movement direction
+         lda #$01
+         sta Enemy_MovingDir,x     ;set enemy movement direction to the right as well
+         cpy #$01                  ;if we were indeed moving to the right,
+         beq LandEnemyInitState    ;nothing left to do
+         jsr InvEnemyDir           ;otherwise, invert direction.
+.ELSE
          lda Enemy_ID,x            ;check enemy identifier for goomba
          cmp #Goomba               ;branch if found
          beq LandEnemyInitState
@@ -11005,6 +11034,7 @@ CNwCDir: tya
          cmp Enemy_MovingDir,x     ;compare direction in A with current direction in memory
          bne LandEnemyInitState
          jsr ChkForBump_HammerBroJ ;if equal, not facing in correct dir, do sub to turn around
+.ENDIF
 
 LandEnemyInitState:
       jsr EnemyLanding       ;land enemy properly
