@@ -9611,7 +9611,7 @@ UpToSuper:
        lda #$09         ;set value to be used by subroutine tree (super)
 
 UpToFiery:
-      .IF TWEAK_FIX_POWERUP_JUMP
+      .IF TWEAK_FIX_POWERUP_MOMENTUM
        ldy Player_State
       .ELSE
        ldy #$00         ;set value to be used as new player state
