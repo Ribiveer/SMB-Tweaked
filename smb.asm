@@ -7666,6 +7666,10 @@ MoveNormalEnemy:
        cmp #$03
        bcs ReviveStunned          ;if enemy in states $03 or $04, skip ahead to yet another part
 FallE: jsr MoveD_EnemyVertically  ;do a sub here to move enemy downwards
+.IF TWEAK_CONSISTENT_SHELL_AIR_SPEED
+SteadM:
+       jmp MoveEnemyHorizontally
+.ELSE
        ldy #$00
        lda Enemy_State,x          ;check for enemy state $02
        cmp #$02
@@ -7691,6 +7695,7 @@ AddHS:  clc
         pla
         sta Enemy_X_Speed,x       ;get old horizontal speed from stack and return to
         rts                       ;original memory location, then leave
+.ENDIF
 
 ReviveStunned:
          lda EnemyIntervalTimer,x  ;if enemy timer not expired yet,
