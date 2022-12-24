@@ -3837,11 +3837,18 @@ SaveJoyp:   lda SavedJoypadBits         ;otherwise store A and B buttons in $0a
             beq SizeChk                 ;if not, branch
             lda Player_State            ;check player's state
             bne SizeChk                 ;if not on the ground, branch
+      .IF TWEAK_FIX_CROUCHING
+            lda PlayerSize
+            bne SizeChk
+            lda #$00                    ;don't press left and right
+            sta Left_Right_Buttons      ;if we're crouching
+      .ELSE
             ldy Left_Right_Buttons      ;check left and right
             beq SizeChk                 ;if neither pressed, branch
             lda #$00
             sta Left_Right_Buttons      ;if pressing down while on the ground,
             sta Up_Down_Buttons         ;nullify directional bits
+      .ENDIF
 SizeChk:    jsr PlayerMovementSubs      ;run movement subroutines
             ldy #$01                    ;is player small?
             lda PlayerSize
@@ -4179,6 +4186,10 @@ PlayerMovementSubs:
            bne ProcMove              ;if not on the ground, branch
            lda Up_Down_Buttons       ;load controller bits for up and down
            and #%00000100            ;single out bit for down button
+      .IF TWEAK_FIX_CROUCHING
+           lsr
+           lsr
+      .ENDIF
 SetCrouch: sta CrouchingFlag         ;store value in crouch flag
 ProcMove:  jsr PlayerPhysicsSub      ;run sub related to jumping and swimming
            lda PlayerChangeSizeFlag  ;if growing/shrinking flag set,
@@ -4372,6 +4383,11 @@ CheckForJumping:
 NoJump: jmp X_Physics             ;otherwise, jump to something else
 
 ProcJumping:
+      .IF TWEAK_FIX_CROUCHING
+           lda CrouchingFlag
+           and SwimmingFlag
+           bne NoJump
+      .ENDIF
            lda Player_State           ;check player state
            beq InitJS                 ;if on the ground, branch
            lda SwimmingFlag           ;if swimming flag not set, jump to do something else
