@@ -212,7 +212,7 @@ ExitPause:     rts
 ;$00 - used for preset value
 
 SpriteShuffler:
-      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+      .IF !TWEAK_SMALL_OPTIMISATIONS
                ldy AreaType                ;load level type, likely residual code
       .ENDIF
                lda #$28                    ;load preset value which will put it at
@@ -367,7 +367,7 @@ ChkContinue:  ldy DemoTimer               ;if timer for demo has expired, reset 
               lda ContinueWorld           ;load previously saved world number for secret
               jsr GoContinue              ;continue function when pressing A + start
 StartWorld1:  jsr LoadAreaPointer
-            .IFNDEF TWEAK_UNCONDITIONAL_1UP
+            .IF !TWEAK_UNCONDITIONAL_1UP
               inc Hidden1UpFlag           ;set 1-up box flag for both players
               inc OffScr_Hidden1UpFlag
             .ENDIF
@@ -741,7 +741,7 @@ InitScreen:
 SetupIntermediate:
       lda BackgroundColorCtrl  ;save current background color control
       pha                      ;and player status to stack
-.IFNDEF TWEAK_DYNAMIC_LIVES_SCREEN
+.IF !TWEAK_DYNAMIC_LIVES_SCREEN
       lda PlayerStatus
       pha
       lda #$00                 ;set background color to black
@@ -750,7 +750,7 @@ SetupIntermediate:
       lda #$02                 ;this is the ONLY time background color control
       sta BackgroundColorCtrl  ;is set to less than 4
       jsr GetPlayerColors
-.IFNDEF TWEAK_DYNAMIC_LIVES_SCREEN
+.IF !TWEAK_DYNAMIC_LIVES_SCREEN
       pla                      ;we only execute this routine for
       sta PlayerStatus         ;the intermediate lives display
 .ENDIF
@@ -918,7 +918,7 @@ DisplayIntermediate:
                beq GameOverInter            ;if so, proceed to display game over screen
                lda AltEntranceControl       ;otherwise check for mode of alternate entry
                bne NoInter                  ;and branch if found
-            .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+            .IF !TWEAK_SMALL_OPTIMISATIONS
                ldy AreaType                 ;check if we are on castle level
                cpy #$03                     ;and if so, branch (possibly residual)
                beq PlayerInter
@@ -1353,7 +1353,7 @@ WriteBlankMT: jsr PutBlockMetatile     ;do a sub to write blank metatile to vram
               sta VRAM_Buffer_AddrCtrl ;set vram address controller to $0341 and leave
               rts
 
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ReplaceBlockMetatile:
        jsr WriteBlockMetatile    ;write metatile to vram buffer to replace block object
        inc Block_ResidualCounter ;increment unused counter (residual code)
@@ -1847,7 +1847,7 @@ ISpr0Loop:   lda Sprite0Data,y
              sta Sprite_Data,y
              dey
              bpl ISpr0Loop
-            .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+            .IF !TWEAK_SMALL_OPTIMISATIONS
              jsr DoNothing2            ;these jsrs doesn't do anything useful
              jsr DoNothing1
             .ENDIF
@@ -2088,7 +2088,7 @@ TerminateGame:
       lda WorldNumber       ;otherwise put world number of current
       sta ContinueWorld     ;player into secret continue function variable
       lda #$00
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
       asl                   ;residual ASL instruction
 .ENDIF
       sta OperMode_Task     ;reset all modes to title screen and
@@ -2132,7 +2132,7 @@ TransLoop: lda OnscreenPlayerInfo,x    ;transpose the information
 ExTrans:   rts
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 DoNothing1:
       lda #$ff       ;this is residual code, this value is
       sta $06c9      ;not used anywhere in the program
@@ -3211,7 +3211,7 @@ Jumpspring:
 ;--------------------------------
 ;$07 - used to save ID of brick object
 
-.IFNDEF TWEAK_UNCONDITIONAL_1UP
+.IF !TWEAK_UNCONDITIONAL_1UP
 Hidden1UpBlock:
       lda Hidden1UpFlag  ;if flag not set, do not render object
       beq ExitDecBlock
@@ -3385,7 +3385,7 @@ GetBlockBufferAddr:
       rts
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ;unused space
       .db $ff, $ff
 .ENDIF
@@ -3502,7 +3502,7 @@ StoreStyle: sta AreaStyle
 .INCLUDE "data-levels.asm"
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ;unused space
       .db $ff
 .ENDIF
@@ -3943,7 +3943,7 @@ WarpZoneChgAreaPipe:
       bne ChgAreaPipe
 .ENDIF
 
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 MovePlayerYAxis:
       clc
       adc Player_Y_Position ;add contents of A to player position
@@ -4087,7 +4087,7 @@ NoFPObj:     inc GameEngineSubroutine ;increment to next routine (this may
 
 ;-------------------------------------------------------------------------------------
 
-.IFNDEF TWEAK_UNCONDITIONAL_1UP
+.IF !TWEAK_UNCONDITIONAL_1UP
 Hidden1UpCoinAmts:
       .db $15, $23, $16, $1b, $17, $18, $23, $63
 .ENDIF
@@ -4120,7 +4120,7 @@ RdyNextA: lda StarFlagTaskControl
           cmp #$03                  ;check to see if we have yet reached level -4
           bne NextArea              ;and skip this last part here if not
           ldy WorldNumber           ;get world number as offset
-      .IFNDEF TWEAK_UNCONDITIONAL_1UP
+      .IF !TWEAK_UNCONDITIONAL_1UP
           lda CoinTallyFor1Ups      ;check third area coin tally for bonus 1-ups
           cmp Hidden1UpCoinAmts,y   ;against minimum value, if player has not collected
           bcc NextArea              ;at least this number of coins, leave flag clear
@@ -5272,7 +5272,7 @@ JCoinC: lda #$fb
         sta Square2SoundQueue  ;load coin grab sound
         stx ObjectOffset       ;store current control bit as misc object offset 
         jsr GiveOneCoin        ;update coin tally on the screen and coin amount variable
-      .IFNDEF TWEAK_UNCONDITIONAL_1UP
+      .IF !TWEAK_UNCONDITIONAL_1UP
         inc CoinTallyFor1Ups   ;increment coin tally used to activate 1-up block flag
       .ENDIF
         rts
@@ -5941,7 +5941,7 @@ SetXMoveAmt: sty $00                 ;set movement amount here
 MaxSpdBlockData:
       .db $06, $08
 
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ResidualGravityCode:
       ldy #$00       ;this part appears to be residual,
       .db $2c        ;no code branches or jumps to it...
@@ -5970,7 +5970,7 @@ MovePlatformUp:
            ldy Enemy_ID,x  ;get enemy object identifier
            inx             ;increment offset for enemy object
            lda #$05        ;load default value here
-      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+      .IF !TWEAK_SMALL_OPTIMISATIONS
            cpy #$29        ;residual comparison, object #29 never executes
            bne SetDplSpd   ;this code, thus unconditional branch here
            lda #$09        ;residual code
@@ -6641,12 +6641,18 @@ DifLoop:  lda PRDiffAdjustData,y     ;get three values and save them
           tay
           iny
 UsePosv:  tya                        ;put value from A in Y back to A (they will be lost anyway)
-SetSpSpd: jsr SmallBBox              ;set bounding box control, init attributes, lose contents of A
+SetSpSpd: 
+      .IF !TWEAK_FIX_SPINY_VELOCITY
+          jsr SmallBBox              ;set bounding box control, init attributes, lose contents of A
+      .ENDIF
           ldy #$02                   ;(putting this call elsewhere will preserve A)
           sta Enemy_X_Speed,x        ;set horizontal speed to zero because previous contents
           cmp #$00                   ;of A were lost...branch here will never be taken for
           bmi SpinyRte               ;the same reason
           dey
+      .IF TWEAK_FIX_SPINY_VELOCITY
+          jsr SmallBBox              ;set bounding box control, init attributes, lose contents of A
+      .ENDIF
 SpinyRte: sty Enemy_MovingDir,x      ;set moving direction to the right
           lda #$fd
           sta Enemy_Y_Speed,x        ;set vertical speed to move upwards
@@ -9360,7 +9366,7 @@ TooFar:   jsr EraseEnemyObject    ;erase object if necessary
 ExScrnBd: rts                     ;leave
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ;some unused space
       .db $ff, $ff, $ff
 .ENDIF
@@ -9581,13 +9587,13 @@ SkipChangeSize:
       beq UpToSuper
       cmp #$01            ;if player status not super, leave
       bne NoPUp
-      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
+      .IF !TWEAK_SMALL_OPTIMISATIONS
       ldx ObjectOffset    ;get enemy offset, not necessary
       .ENDIF
       lda #$02            ;set player status to fiery
       sta PlayerStatus
       jsr GetPlayerColors ;run sub to change colors of player
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
       ldx ObjectOffset    ;get enemy offset again, and again not necessary
 .ENDIF
       lda #$0c            ;set value to be used by subroutine tree (fiery)
@@ -10496,7 +10502,7 @@ AreaChangeTimerData:
 
 HandleCoinMetatile:
       jsr ErACM             ;do sub to erase coin metatile from block buffer
-.IFNDEF TWEAK_UNCONDITIONAL_1UP
+.IF !TWEAK_UNCONDITIONAL_1UP
       inc CoinTallyFor1Ups  ;increment coin tally used for 1-up blocks
 .ENDIF
       jmp GiveOneCoin       ;update coin amount and tally on the screen
@@ -10695,7 +10701,7 @@ GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
          ldx WorldAddrOffsets,y    ;get offset to where this world's area offsets are
          lda AreaAddrOffsets,x     ;get area offset based on world offset
          sta AreaPointer           ;store area offset here to be used to change areas
-      .IFNDEF TWEAK_UNCONDITIONAL_1UP
+      .IF !TWEAK_UNCONDITIONAL_1UP
          inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
       .ENDIF
          inc FetchNewGameTimerFlag ;set flag to load new game timer
@@ -10710,7 +10716,7 @@ GetWNum: ldy WarpZoneNumbers,x     ;get warp zone numbers
          sta AreaNumber            ;initialize area number used for area address offset
          sta LevelNumber           ;initialize level number used for world display
          sta AltEntranceControl    ;initialize mode of entry
-      .IFNDEF TWEAK_UNCONDITIONAL_1UP
+      .IF !TWEAK_UNCONDITIONAL_1UP
          inc Hidden1UpFlag         ;set flag for hidden 1-up blocks
       .ENDIF
          inc FetchNewGameTimerFlag ;set flag to load new game timer
@@ -11505,7 +11511,7 @@ RetYC: and #%00001111              ;and mask out high nybble
        rts                         ;and leave
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ;unused byte
       .db $ff
 .ENDIF
@@ -12961,7 +12967,7 @@ ProcessPlayerAction:
         bne ProcOnGroundActs  ;if not jumping, branch here
         lda SwimmingFlag
         bne ActionSwimming    ;if swimming flag set, branch elsewhere
-      .IFNDEF TWEAK_FIX_CROUCHING
+      .IF !TWEAK_FIX_CROUCHING
         ldy #$06              ;load offset for crouching
         lda CrouchingFlag     ;get crouching flag
         bne NonAnimatedActs   ;if set, branch to get offset for graphics table
@@ -12970,7 +12976,7 @@ ProcessPlayerAction:
         jmp NonAnimatedActs   ;go to get offset to graphics table
 
 ProcOnGroundActs:
-      .IFNDEF TWEAK_FIX_CROUCHING
+      .IF !TWEAK_FIX_CROUCHING
         ldy #$06                   ;load offset for crouching
         lda CrouchingFlag          ;get crouching flag
         bne NonAnimatedActs        ;if set, branch to get offset for graphics table
@@ -13409,7 +13415,7 @@ SetHFAt: ora $04                    ;add other OAM attributes if necessary
          rts
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_SMALL_OPTIMISATIONS
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ;unused space
         .db $ff, $ff, $ff, $ff, $ff, $ff
 .ENDIF
