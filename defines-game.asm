@@ -502,3 +502,9 @@ AreaMusicBuffer_Alt   = $07c5
 PauseModeFlag         = $07c6
 GroundMusicHeaderOfs  = $07c7
 AltRegContentFlag     = $07ca
+
+FreeToUseRam          = $036b
+FreeToUseRam          = $036c
+FreeToUseRam          = $036d
+FreeToUseRam          = $036e
+FreeToUseRam          = $036f
