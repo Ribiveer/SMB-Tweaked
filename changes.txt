@@ -14,17 +14,16 @@ x The lives counter now displays the number of lives above 9 like normal.
 x Lives are now capped at 99 to prevent glitches.
 x Mario no longer loses vertical momentum while collecting a power-up. As a result, the glitch where Mario could jump from a power-up has also been fixed.
 x Getting the flagpole stops the star invincibility, to prevent audio glitches.
-- Holding the run button while Fire Mario no longer makes him fire a fireball while entering an area.
-- Holding the jump button no longer makes Mario jump while entering an area.
+x Holding the run button while Fire Mario no longer makes him fire a fireball while entering an area.
+x Holding the jump button no longer makes Mario jump while entering an area.
 x The scrolling now properly stops in warp zone areas.
 x Faulty warp pipes have now been linked to Bowser's sewage system.
-- Kicked shells now keep their momentum while going off a ledge.
-- The fortress in 5-1 has been changed to a castle, for consistency.
+x Kicked shells now keep their momentum while going off a ledge.
+x The fortress in 5-1 has been changed to a castle, for consistency.
 x Fire Mario and Fire Luigi now have separate palettes.
 x Green Cheep Cheeps now appear green underwater.
 x The lives screen now properly reflects Mario's power-up state.
 x When entering a warp-pipe, Small Mario will now always stand still and Big Mario will now always crouch.
-- Mario now has a death animation when falling down a pit.
 x Both players can now always pause the game.
 
 ----- Modernised Quality of Life Mechanics -----
@@ -38,14 +37,13 @@ x Hidden 1-up blocks no longer despawn after dying.
 
 ----- Enemy Behaviour Changes -----
 - Hammers now travel along their arc, regardless of whether they touch Mario.
-- Enemies like Goombas, Koopas, Buzzy Beetles and Spinies now only change direction when walking into a wall, or when turning around on a ledge.
+x Enemies like Goombas, Koopas, Buzzy Beetles and Spinies now only change direction when walking into a wall, or when turning around on a ledge.
 - It is now possible to defeat Spinies by hitting blocks underneath them.
 
 ----- PAL Version Changes -----
 x Cheep Cheep code has been optimised.
-- Pipes at the end of underwater levels now don't have an empty block above them.
 - The system that detects whether Mario has stomped an enemy has been improved.
-- Fixed springs being able to get overwritten in memory, or overwriting other memory.
+x Fixed springs being able to get overwritten in memory, or overwriting other memory.
 - Some enemies now have a slightly higher hitbox.
 - Spring acceleration is now defined (whatever that means).
 
@@ -68,13 +66,3 @@ Fix hammer bros. eyes while throwing
 Make bowser flash when hit with a fireball
 Optimise enemy rendering code
 Fix mario's starting jump momentum thing that gets him flying off the bowser stairs
-
------ From PAL Revision B -----
-The exclamation mark has been resized.
-The dot has been aligned upper. 
-The cross graphic by the coin counter has been aligned upper. 
-
-known bugs:
-throwing a fireball briefly before getting damaged and grabbing another fire flower, spawns a random fireball underneath Mario.
-Breaking the bricks underneath a koopa troopa doesn't give you points
-Sometimes, the end of the flagpole (even when getting a 1-up instead of points) messes up the score display a bit.
