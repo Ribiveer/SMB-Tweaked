@@ -512,8 +512,10 @@ PrintVictoryMessages:
                bne IncMsgCounter         ;if set, branch to increment message counters
                lda PrimaryMsgCounter     ;otherwise load primary message counter
                beq ThankPlayer           ;if set to zero, branch to print first message
+            .IF !TWEAK_SMALL_OPTIMISATIONS
                cmp #$09                  ;if at 9 or above, branch elsewhere (this comparison
                bcs IncMsgCounter         ;is residual code, counter never reaches 9)
+            .ENDIF
                ldy WorldNumber           ;check world number
                cpy #World8
                bne MRetainerMsg          ;if not at world 8, skip to next part
@@ -2814,7 +2816,9 @@ ExitCastle: rts
 
 WaterPipe:
       jsr GetLrgObjAttrib     ;get row and lower nybble
+.IF !TWEAK_SMALL_OPTIMISATIONS
       ldy AreaObjectLength,x  ;get length (residual code, water pipe is 1 col thick)
+.ENDIF
       ldx $07                 ;get row
       lda #$6b
       sta MetatileBuffer,x    ;draw something here and below it
@@ -3001,11 +3005,12 @@ Bridge_Low:
 ;--------------------------------
 
 FlagBalls_Residual:
+.IF !TWEAK_SMALL_OPTIMISATIONS
       jsr GetLrgObjAttrib  ;get low nybble from object byte
       ldx #$02             ;render flag balls on third row from top
       lda #$6d             ;of screen downwards based on low nybble
       jmp RenderUnderPart
-
+.ENDIF
 ;--------------------------------
 
 FlagpoleObject:
@@ -3224,7 +3229,11 @@ Hidden1UpBlock:
 .ENDIF
 
 QuestionBlock:
+.IF TWEAK_SMALL_OPTIMISATIONS
+      ldy $00
+.ELSE
       jsr GetAreaObjectID ;get value from level decoder routine
+.ENDIF
       jmp DrawQBlk        ;go to render it
 
 BrickWithCoins:
@@ -3232,9 +3241,14 @@ BrickWithCoins:
       sta BrickCoinTimerFlag
 
 BrickWithItem:
+      .IF TWEAK_SMALL_OPTIMISATIONS
+          lda $00
+          sta $07
+      .ELSE
           jsr GetAreaObjectID         ;save area object ID
           sty $07              
           lda #$00                    ;load default adder for bricks with lines
+      .ENDIF
           ldy AreaType                ;check level type for ground level
           dey
           beq BWithL                  ;if ground type, do not start with 5
@@ -3247,11 +3261,13 @@ DrawQBlk: lda BrickQBlockMetatiles,y  ;get appropriate metatile for brick (quest
           jsr GetLrgObjAttrib         ;get row from location byte
           jmp DrawRow                 ;now render the object
 
+.IF !TWEAK_SMALL_OPTIMISATIONS
 GetAreaObjectID:
               lda $00    ;get value saved from area parser routine
               sec
               sbc #$00   ;possibly residual code
               tay        ;save to Y
+.ENDIF
 ExitDecBlock: rts
 
 ;--------------------------------
@@ -3646,8 +3662,10 @@ ScrollScreen:
               ora $00                   ;get saved bit here and save in PPU register 1
               sta Mirror_PPU_CTRL_REG1  ;mirror to be used to set name table later
               jsr GetScreenPosition     ;figure out where the right side is
+            .IF !TWEAK_SMALL_OPTIMISATIONS
               lda #$08
               sta ScrollIntervalTimer   ;set scroll timer (residual, not used elsewhere)
+            .ENDIF
               jmp ChkPOffscr            ;skip this part
 InitScrlAmt:  lda #$00
               sta ScrollAmount          ;initialize value here

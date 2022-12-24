@@ -93,7 +93,9 @@ Palette1_MTiles:
   .db $24, $47, $24, $47 ;half brick (???)
   .db $86, $8a, $87, $8b ;water pipe top
   .db $8e, $91, $8f, $92 ;water pipe bottom
+.IF !TWEAK_SMALL_OPTIMISATIONS
   .db $24, $2f, $24, $3d ;flag ball (residual object)
+.ENDIF
 
 Palette2_MTiles:
   .db $24, $24, $24, $35 ;cloud left
