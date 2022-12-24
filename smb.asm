@@ -11779,6 +11779,7 @@ NPROffscr: tya
 ;-------------------------------------------------------------------------------------
 
 IntermediatePlayerData:
+;vertical position, direction, individual tile properties, horizontal position, nothing? Sprite draw amount
         .db $58, $01, $00, $60, $ff, $04
 
 DrawPlayer_Intermediate:
@@ -11789,6 +11790,16 @@ PIntLoop: lda IntermediatePlayerData,x   ;load data to display player as he alwa
           bpl PIntLoop                   ;do this until all data is loaded
           ldx #$b8                       ;load offset for small standing
           ldy #$04                       ;load sprite data offset
+      .IFDEF TWEAK_DYNAMIC_LIVES_SCREEN
+          lda PlayerSize
+          bne PIntSml
+          lda #$02
+          sta $07
+          lda #$68
+          sta $02
+          ldx #$c8
+PIntSml:
+      .ENDIF
           jsr DrawPlayerLoop             ;draw player accordingly
           lda Sprite_Attributes+36       ;get empty sprite attributes
           ora #%01000000                 ;set horizontal flip bit for bottom-right sprite
