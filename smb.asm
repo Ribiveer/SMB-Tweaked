@@ -212,7 +212,9 @@ ExitPause:     rts
 ;$00 - used for preset value
 
 SpriteShuffler:
+      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
                ldy AreaType                ;load level type, likely residual code
+      .ENDIF
                lda #$28                    ;load preset value which will put it at
                sta $00                     ;sprite #10
                ldx #$0e                    ;start at the end of OAM data offsets
@@ -693,13 +695,13 @@ WriteBlankMT: jsr PutBlockMetatile     ;do a sub to write blank metatile to vram
               sta VRAM_Buffer_AddrCtrl ;set vram address controller to $0341 and leave
               rts
 
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ReplaceBlockMetatile:
        jsr WriteBlockMetatile    ;write metatile to vram buffer to replace block object
-      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
        inc Block_ResidualCounter ;increment unused counter (residual code)
        dec Block_RepFlag,x       ;decrement flag (residual code)
-      .ENDIF
        rts                       ;leave
+.ENDIF
 
 DestroyBlockMetatile:
        lda #$00       ;force blank metatile if branched/jumped to this point
@@ -4781,7 +4783,11 @@ UpdateLoop: stx ObjectOffset          ;set offset here
             tay
             lda Block_Metatile,x      ;get metatile to be written
             sta ($06),y               ;write it to the block buffer
+            .IFDEF TWEAK_SMALL_OPTIMISATIONS
+            jsr WriteBlockMetatile    ;do sub to replace metatile where block object is
+            .ELSE
             jsr ReplaceBlockMetatile  ;do sub to replace metatile where block object is
+            .ENDIF
             lda #$00
             sta Block_RepFlag,x       ;clear block object flag
 NextBUpd:   dex                       ;decrement block object offset
@@ -4919,9 +4925,11 @@ SetXMoveAmt: sty $00                 ;set movement amount here
 MaxSpdBlockData:
       .db $06, $08
 
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ResidualGravityCode:
       ldy #$00       ;this part appears to be residual,
       .db $2c        ;no code branches or jumps to it...
+.ENDIF
 
 ImposeGravityBlock:
       ldy #$01       ;set offset for maximum speed
@@ -4946,9 +4954,11 @@ MovePlatformUp:
            ldy Enemy_ID,x  ;get enemy object identifier
            inx             ;increment offset for enemy object
            lda #$05        ;load default value here
+      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
            cpy #$29        ;residual comparison, object #29 never executes
            bne SetDplSpd   ;this code, thus unconditional branch here
            lda #$09        ;residual code
+      .ENDIF
 SetDplSpd: sta $00         ;save downward movement amount here
            lda #$0a        ;save upward movement amount here
            sta $01
