@@ -3904,6 +3904,7 @@ HoleDie:    inx                         ;set flag in X for player death
             sty DeathMusicLoaded        ;and set value here
 HoleBottom: ldy #$06
             sty $07                     ;change value here
+      .ENDIF
 ChkHoleX:   cmp $07                     ;compare vertical high byte with value set here
             bmi ExitCtrl                ;if less, branch to leave
             dex                         ;otherwise decrement flag in X
