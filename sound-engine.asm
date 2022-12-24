@@ -1,5 +1,5 @@
 SoundEngine:
-        .IFNDEF TWEAK_TITLE_MUSIC
+        .IF !TWEAK_TITLE_MUSIC
          lda OperMode              ;are we in title screen mode?
          bne SndOn
          sta SND_MASTERCTRL_REG    ;if so, disable sound and leave
