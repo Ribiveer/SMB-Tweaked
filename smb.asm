@@ -11847,6 +11847,11 @@ DrawPlayerLoop:
         rts
 
 ProcessPlayerAction:
+      .IFDEF TWEAK_FIX_CROUCHING
+        ldy #$06              ;load offset for crouching
+        lda CrouchingFlag     ;get crouching flag
+        bne NonAnimatedActs
+      .ENDIF
         lda Player_State      ;get player's state
         cmp #$03
         beq ActionClimbing    ;if climbing, branch here
@@ -11856,16 +11861,20 @@ ProcessPlayerAction:
         bne ProcOnGroundActs  ;if not jumping, branch here
         lda SwimmingFlag
         bne ActionSwimming    ;if swimming flag set, branch elsewhere
+      .IFNDEF TWEAK_FIX_CROUCHING
         ldy #$06              ;load offset for crouching
         lda CrouchingFlag     ;get crouching flag
         bne NonAnimatedActs   ;if set, branch to get offset for graphics table
+      .ENDIF
         ldy #$00              ;otherwise load offset for jumping
         jmp NonAnimatedActs   ;go to get offset to graphics table
 
 ProcOnGroundActs:
+      .IFNDEF TWEAK_FIX_CROUCHING
         ldy #$06                   ;load offset for crouching
         lda CrouchingFlag          ;get crouching flag
         bne NonAnimatedActs        ;if set, branch to get offset for graphics table
+      .ENDIF
         ldy #$02                   ;load offset for standing
         lda Player_X_Speed         ;check player's horizontal speed
         ora Left_Right_Buttons     ;and left/right controller bits
