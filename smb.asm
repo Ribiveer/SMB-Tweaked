@@ -3797,6 +3797,11 @@ PlayerRdy:  lda #$08                  ;set routine to be executed by game engine
             sta AltEntranceControl    ;init mode of entry
             sta DisableCollisionDet   ;init collision detection disable flag
             sta JoypadOverride        ;nullify controller override bits
+.IF TWEAK_FIX_STARTING_INPUT
+            lda #A_Button | #B_Button ;store A and B button presses in current A_B         
+            sta A_B_Buttons           ;and pretend they're pressed right now.
+            sta PreviousA_B_Buttons   ;and last frame.
+.ENDIF
 ExitEntr:   rts                       ;leave!
 
 ;-------------------------------------------------------------------------------------
