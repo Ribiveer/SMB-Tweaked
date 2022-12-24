@@ -3538,9 +3538,13 @@ GetYPhy:   lda JumpMForceData,y       ;store appropriate jump/swim
            sta Player_Y_MoveForce
            lda PlayerYSpdData,y
            sta Player_Y_Speed
+.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+           lda StompTimer             ;if the player is stomping something
+           bne PStompSnd              ;do the stomp sound instead.
+.ENDIF
            lda SwimmingFlag           ;if swimming flag disabled, branch
            beq PJumpSnd
-           lda #Sfx_EnemyStomp        ;load swim/goomba stomp sound into
+PStompSnd: lda #Sfx_EnemyStomp        ;load swim/goomba stomp sound into
            sta Square1SoundQueue      ;square 1's sfx queue
            lda Player_Y_Position
            cmp #$14                   ;check vertical low byte of player position
@@ -8749,9 +8753,13 @@ EnemyStompedPts:
       sta Enemy_State,x          ;set d5 in enemy state
       jsr InitVStf               ;nullify vertical speed, physics-related thing,
       sta Enemy_X_Speed,x        ;and horizontal speed
+.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+      jmp HandleStomp            ;do the player bouncing logic
+.ELSE
       lda #$fd                   ;set player's vertical speed, to give bounce
       sta Player_Y_Speed
       rts
+.ENDIF
 
 ChkForDemoteKoopa:
       cmp #$09                   ;branch elsewhere if enemy object < $09
@@ -8766,7 +8774,13 @@ ChkForDemoteKoopa:
       jsr EnemyFacePlayer        ;turn enemy around if necessary
       lda DemotedKoopaXSpdData,y
       sta Enemy_X_Speed,x        ;set appropriate moving speed based on direction
-      jmp SBnce                  ;then move onto something else
+.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+      jmp HandleStomp
+StompHigh:
+      jmp InitJS                 ;secretly, stomping high is just jumping.
+.ELSE
+      jmp SBnce                  ;then bounce the player
+.ENDIF
 
 RevivalRateData:
       .db $10, $0b
@@ -8774,6 +8788,8 @@ RevivalRateData:
 HandleStompedShellE:
        lda #$04                   ;set defeated state for enemy
        sta Enemy_State,x
+
+HandleStomp:
        inc StompChainCounter      ;increment the stomp counter
        lda StompChainCounter      ;add whatever is in the stomp counter
        clc                        ;to whatever is in the stomp timer
@@ -8783,9 +8799,19 @@ HandleStompedShellE:
        ldy PrimaryHardMode        ;check primary hard mode flag
        lda RevivalRateData,y      ;load timer setting according to flag
        sta EnemyIntervalTimer,x   ;set as enemy timer to revive stomped enemy
+
+.IFDEF TWEAK_MODERN_ENEMY_BOUNCE
+      lda SavedJoypadBits
+      and #A_Button              ;if the A button is pressed,
+      bne StompHigh              ;Stomp high!
+      lda #$fc                   ;otherwise, set normal bounce momentum
+      sta Player_Y_Speed
+      rts
+.ELSE
 SBnce: lda #$fc                   ;set player's vertical speed for bounce
        sta Player_Y_Speed         ;and then leave!!!
        rts
+.ENDIF
 
 ChkEnemyFaceRight:
        lda Enemy_MovingDir,x ;check to see if enemy is moving to the right
