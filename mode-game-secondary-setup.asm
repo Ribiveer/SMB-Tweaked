@@ -32,7 +32,7 @@ ISpr0Loop:   lda Sprite0Data,y
              sta Sprite_Data,y
              dey
              bpl ISpr0Loop
-            .IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+            .IFNDEF TWEAK_SMALL_OPTIMISATIONS
              jsr DoNothing2            ;these jsrs doesn't do anything useful
              jsr DoNothing1
             .ENDIF

@@ -695,7 +695,7 @@ WriteBlankMT: jsr PutBlockMetatile     ;do a sub to write blank metatile to vram
 
 ReplaceBlockMetatile:
        jsr WriteBlockMetatile    ;write metatile to vram buffer to replace block object
-      .IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+      .IFNDEF TWEAK_SMALL_OPTIMISATIONS
        inc Block_ResidualCounter ;increment unused counter (residual code)
        dec Block_RepFlag,x       ;decrement flag (residual code)
       .ENDIF
@@ -1319,7 +1319,7 @@ TerminateGame:
       lda WorldNumber       ;otherwise put world number of current
       sta ContinueWorld     ;player into secret continue function variable
       lda #$00
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
       asl                   ;residual ASL instruction
 .ENDIF
       sta OperMode_Task     ;reset all modes to title screen and
@@ -1363,7 +1363,7 @@ TransLoop: lda OnscreenPlayerInfo,x    ;transpose the information
 ExTrans:   rts
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 DoNothing1:
       lda #$ff       ;this is residual code, this value is
       sta $06c9      ;not used anywhere in the program
@@ -2616,7 +2616,7 @@ GetBlockBufferAddr:
       rts
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ;unused space
       .db $ff, $ff
 .ENDIF
@@ -2731,7 +2731,7 @@ StoreStyle: sta AreaStyle
 ;-------------------------------------------------------------------------------------
 .INCLUDE "data-levels.asm"
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ;unused space
       .db $ff
 .ENDIF
@@ -3061,15 +3061,13 @@ VerticalPipeEntry:
       lda PlayerSize
       eor #$01
       sta CrouchingFlag
-      inc Player_Y_Position
-.ELSE
+.ENDIF
   .IFDEF TWEAK_SMALL_OPTIMISATIONS
       inc Player_Y_Position
   .ELSE
       lda #$01             ;set 1 as movement amount
       jsr MovePlayerYAxis  ;do sub to move player downwards
   .ENDIF
-.ENDIF
       jsr ScrollHandler    ;do sub to scroll screen with saved force if necessary
       ldy #$00             ;load default mode of entry
       lda WarpZoneControl  ;check warp zone control variable/flag
@@ -8274,7 +8272,7 @@ TooFar:   jsr EraseEnemyObject    ;erase object if necessary
 ExScrnBd: rts                     ;leave
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ;some unused space
       .db $ff, $ff, $ff
 .ENDIF
@@ -12292,7 +12290,7 @@ SetHFAt: ora $04                    ;add other OAM attributes if necessary
          rts
 
 ;-------------------------------------------------------------------------------------
-.IFNDEF TWEAK_REMOVE_UNUSED_SPACE
+.IFNDEF TWEAK_SMALL_OPTIMISATIONS
 ;unused space
         .db $ff, $ff, $ff, $ff, $ff, $ff
 .ENDIF
