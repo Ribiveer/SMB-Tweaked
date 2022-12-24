@@ -564,8 +564,15 @@ L_GroundArea10:
 
 ;level 5-1
 L_GroundArea11:
+.IF TWEAK_FIX_SMALL_CASTLES
+      .db $92, $b1      ;set the header to "wall background"
+      .db $0f, $20      ;increase height of castle
+      .db $6e, $45      ;after 2 blocks of wall, we can go back to the snow theme
+.ELSE
       .db $95, $b1
-      .db $0f, $26, $0d, $02, $c8, $72, $1c, $81, $38, $72
+      .db $0f, $26
+.ENDIF
+      .db $0d, $02, $c8, $72, $1c, $81, $38, $72
       .db $0d, $05, $97, $34, $98, $62, $a3, $20, $b3, $06
       .db $c3, $20, $cc, $03, $f9, $91, $2c, $81, $48, $62
       .db $0d, $09, $37, $63, $47, $03, $57, $21, $8c, $02
