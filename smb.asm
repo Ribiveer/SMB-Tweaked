@@ -3883,8 +3883,13 @@ PlayerHole: lda Player_Y_HighPos        ;check player's vertical high byte
             bne ChkHoleX                ;skip to last part if found
 HoleDie:    inx                         ;set flag in X for player death
             ldy GameEngineSubroutine
-            cpy #$0b                    ;check for some other routine running
+            cpy #$0b                    ;check if already dead
             beq ChkHoleX                ;if so, branch ahead
+      .IF TWEAK_SMALL_OPTIMISATIONS
+            inc Player_Y_HighPos        ;get the player really low, so we don't see it anymore when it bounces up
+            dex                         ;set x for 0, so we can
+            jmp KillPlayer              ;kill the player
+      .ELSE
             ldy DeathMusicLoaded        ;check value here
             bne HoleBottom              ;if already set, branch to next part
             iny
