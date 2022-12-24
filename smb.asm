@@ -3731,13 +3731,16 @@ ExGTimer:  rts                        ;leave
 WarpZoneObject:
       lda ScrollLock         ;check for scroll lock flag
       beq ExGTimer           ;branch if not set to leave
+      lda Player_Y_Position  ;check if player is standing exactly on the bricks (y_pos = 0)
 .IFDEF TWEAK_FIX_WARP_ZONE_SCROLL
-      lda Player_Y_HighPos   ;check to see if player is not above the screen
+      beq UnlockWarpZone     ;if so, unlock the warp zone
+      lda Player_Y_HighPos   ;check if player is above the bricks (y_page = 0)
 .ELSE
-      lda Player_Y_Position  ;check to see if player's vertical coordinate has
-      and Player_Y_HighPos   ;same bits set as in vertical high byte (why?)
+      and Player_Y_HighPos   ;AND if player is above the bricks (y_page = 0) (erronious)
 .ENDIF
-      bne ExGTimer           ;if so, branch to leave
+      bne ExGTimer           ;if not, leave
+
+UnlockWarpZone:
       sta ScrollLock         ;otherwise nullify scroll lock flag
       inc WarpZoneControl    ;increment warp zone flag to make warp pipes for warp zone
       jmp EraseEnemyObject   ;kill this object
