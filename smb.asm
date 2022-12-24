@@ -3197,6 +3197,9 @@ NextStair: dec StaircaseControl      ;move onto next step (or first if starting)
 Jumpspring:
       jsr GetLrgObjAttrib
       jsr FindEmptyEnemySlot      ;find empty space in enemy object buffer
+.IF TWEAK_PAL_FIX_SPRING_SPAWNING
+      bcs ExitJumpSpring          ;if no free slot, skip
+.ENDIF
       jsr GetAreaObjXPosition     ;get horizontal coordinate for jumpspring
       sta Enemy_X_Position,x      ;and store
       lda CurrentPageLoc          ;store page location of jumpspring
