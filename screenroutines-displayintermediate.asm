@@ -5,9 +5,11 @@ DisplayIntermediate:
                beq GameOverInter            ;if so, proceed to display game over screen
                lda AltEntranceControl       ;otherwise check for mode of alternate entry
                bne NoInter                  ;and branch if found
+            .IFNDEF TWEAK_SMALL_OPTIMISATIONS
                ldy AreaType                 ;check if we are on castle level
                cpy #$03                     ;and if so, branch (possibly residual)
                beq PlayerInter
+            .ENDIF
                lda DisableIntermediate      ;if this flag is set, skip intermediate lives display
                bne NoInter                  ;and jump to specific task, otherwise
 PlayerInter:   jsr DrawPlayer_Intermediate  ;put player in appropriate place for
