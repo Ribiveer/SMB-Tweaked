@@ -3217,6 +3217,7 @@ Jumpspring:
       sta MetatileBuffer,x
       lda #$68
       sta MetatileBuffer+1,x
+ExitJumpSpring:
       rts
 
 ;--------------------------------
