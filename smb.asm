@@ -3057,7 +3057,7 @@ SetEntr:   lda #$02               ;set starting position to override
 ;-------------------------------------------------------------------------------------
 
 VerticalPipeEntry:
-.IFDEF TWEAK_FIX_PIPE_CROUCHING
+.IFDEF TWEAK_FORCE_PIPE_CROUCHING
       lda PlayerSize
       eor #$01
       sta CrouchingFlag
