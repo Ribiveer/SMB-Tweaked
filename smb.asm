@@ -8520,11 +8520,11 @@ UpToSuper:
 
 UpToFiery:
       .IFDEF TWEAK_FIX_POWERUP_JUMP
-       jsr SetKRout     ;set player state to falling, and stop certain things in motion
+       ldy Player_State
       .ELSE
        ldy #$00         ;set value to be used as new player state
-       jsr SetPRout     ;set values to stop certain things in motion
       .ENDIF
+       jsr SetPRout     ;set values to stop certain things in motion
 
 NoPUp: rts
 
@@ -8679,11 +8679,7 @@ NoColorChange:
           jsr GetPlayerColors       ;change player's palette if necessary
           lda #$0a                  ;set subroutine to run on next frame
       .ENDIF
-.IFDEF TWEAK_FIX_POWERUP_JUMP
-SetKRout: ldy #$02                  ;set new player state: falling
-.ELSE
 SetKRout: ldy #$01                  ;set new player state: jumping
-.ENDIF
 SetPRout: sta GameEngineSubroutine  ;load new value to run subroutine on next frame
           sty Player_State          ;store new player state
           ldy #$ff
