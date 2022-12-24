@@ -3245,13 +3245,12 @@ BrickWithCoins:
 
 BrickWithItem:
       .IF TWEAK_SMALL_OPTIMISATIONS
-          lda $00
-          sta $07
+          ldy $00
       .ELSE
-          jsr GetAreaObjectID         ;save area object ID
-          sty $07              
-          lda #$00                    ;load default adder for bricks with lines
+          jsr GetAreaObjectID         ;save area object ID             
       .ENDIF
+          sty $07 
+          lda #$00                    ;load default adder for bricks with lines
           ldy AreaType                ;check level type for ground level
           dey
           beq BWithL                  ;if ground type, do not start with 5
