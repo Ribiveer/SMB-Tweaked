@@ -189,7 +189,10 @@ ChkPauseTimer: lda GamePauseTimer     ;check if pause timer is still counting do
                dec GamePauseTimer     ;if so, decrement and leave
                rts
 ChkStart:      lda SavedJoypad1Bits   ;check to see if start is pressed
-               and #Start_Button      ;on controller 1
+            .IF TWEAK_PLAYER2_PAUSE
+               ora SavedJoypad2Bits   ;or on controller 2
+            .ENDIF
+               and #Start_Button
                beq ClrPauseTimer
                lda GamePauseStatus    ;check to see if timer flag is set
                and #%10000000         ;and if so, do not reset timer

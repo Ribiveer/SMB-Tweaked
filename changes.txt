@@ -25,7 +25,7 @@ x Green Cheep Cheeps now appear green underwater.
 x The lives screen now properly reflects Mario's power-up state.
 x When entering a warp-pipe, Small Mario will now always stand still and Big Mario will now always crouch.
 - Mario now has a death animation when falling down a pit.
-- Both players can now always pause the game.
+x Both players can now always pause the game.
 
 ----- Modernised Quality of Life Mechanics -----
 x Holding A now allows you to bounce on enemies higher, like in later entries.
