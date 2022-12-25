@@ -7,7 +7,7 @@ x There is now music on the title screen: an alternate version of the underwater
 x Lakitus now throw their spinies as originally intended by the programmers.
 x Falling while crouching now keeps your sprite crouched.
 x While underwater, crouching no longer messes up the hitbox.
-- Stars are now guaranteed to jump out of their blocks, as opposed to sometimes falling down.
+x Stars are now guaranteed to jump out of their blocks, as opposed to sometimes falling down.
 x The lives counter now displays the number of lives above 9 like normal.
 x Lives are now capped at 99 to prevent glitches.
 x Mario no longer loses vertical momentum while collecting a power-up. As a result, the glitch where Mario could jump from a power-up has also been fixed.
@@ -44,7 +44,6 @@ x The system that detects whether Mario has stomped an enemy has been improved.
 x Fixed springs being able to get overwritten in memory, or overwriting other memory.
 x Some enemies now have a slightly higher hitbox.
 x Spring acceleration is now defined (whatever that means).
-
 
 possible things to do next:
 Move the timer sound effect to the other channel, so you can hear the melody of the fanfare
