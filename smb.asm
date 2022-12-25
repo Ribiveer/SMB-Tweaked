@@ -9856,8 +9856,6 @@ ChkETmrs: lda StompTimer         ;check stomp timer
           bne EnemyStomped       ;branch if set
           lda InjuryTimer        ;check to see if injured invincibility timer still
           bne ExInjColRoutines   ;counting down, and branch elsewhere to leave if so
-      .IF TWEAK_MODERN_ENEMY_MOVEMENT
-      .ELSE
       .IF !TWEAK_MODERN_ENEMY_MOVEMENT
           lda Player_Rel_XPos
           cmp Enemy_Rel_XPos     ;if player's relative position to the left of enemy's
