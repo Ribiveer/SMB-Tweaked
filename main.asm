@@ -26,7 +26,8 @@ TWEAK_SMM2_LUIGI_PALETTE EQU 0
 TWEAK_GREEN_CHEEP_CHEEPS EQU 1
 
 ;REQUIRES CHR EDITING. 
-;Since I can't include the CHR file in this repo for obvious reasons, it's best if you figure out yourself what changed, and which sprites to flip / move to make this look right
+;Since I can't include the CHR file in this repo for obvious reasons, it's best if you figure out yourself what changed, and which sprites to flip / move to make this look right.
+;After that, you have some sprites cleared for other uses!
 TWEAK_SPRITE_OPTIMISATIONS EQU 0
 
 TWEAK_FLAGPOLE_1UP EQU 1
