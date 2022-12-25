@@ -11848,7 +11848,9 @@ FlagpoleGfxHandler:
       lda FlagpoleFNum_Y_Pos         ;get vertical coordinate for floatey number
       sta $02                        ;store it here
       lda #$01
+.IF !TWEAK_SMALL_OPTIMISATIONS
       sta $03                        ;set value for flip which will not be used, and
+.ENDIF
       sta $04                        ;attribute byte for floatey number
       sta Sprite_Attributes,y        ;set attribute bytes for all three sprites
       sta Sprite_Attributes+4,y
@@ -12353,7 +12355,9 @@ CheckToAnimateEnemy:
       ldy #$00    
       cmp #$15                 ;check for mushroom retainer/princess object
       bne CheckForSecondFrame  ;which uses different code here, branch if not found
+.IF !TWEAK_SMALL_OPTIMISATIONS
       iny                      ;residual instruction
+.ENDIF
       lda WorldNumber          ;are we on world 8?
       cmp #World8
       bcs CheckDefeatedState   ;if so, leave the offset alone (use princess)
@@ -12613,8 +12617,10 @@ DrawBlock:
            sta $05                       ;store here
            lda #$03
            sta $04                       ;set attribute byte here
+      .IF !TWEAK_SMALL_OPTIMISATIONS
            lsr
            sta $03                       ;set horizontal flip bit here (will not be used)
+      .ENDIF
            ldy Block_SprDataOffset,x     ;get sprite data offset
            ldx #$00                      ;reset X for use as offset to tile data
 DBlkLoop:  lda DefaultBlockObjTiles,x    ;get left tile number
