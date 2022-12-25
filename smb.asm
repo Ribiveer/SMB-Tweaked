@@ -595,6 +595,20 @@ EndExitTwo:    rts                        ;leave
 
 ;data is used as tiles for numbers
 ;that appear when you defeat enemies
+.IF TWEAK_MODERN_SCORING
+PowerUpFloatey = $04
+FloateyNumTileData:
+      .db $ff, $ff ;dummy
+      .db $f7, $fb ; "200"
+      .db $f8, $fb ; "400"
+      .db $fa, $fb ; "800"
+      .db $f6, $50 ; "1000"
+      .db $f7, $50 ; "2000"
+      .db $f8, $50 ; "4000"
+      .db $fa, $50 ; "8000"
+      .db $fd, $fe ; "1-UP"
+.ELSE
+PowerUpFloatey = $06
 FloateyNumTileData:
       .db $ff, $ff ;dummy
       .db $f6, $fb ; "100"
@@ -608,20 +622,30 @@ FloateyNumTileData:
       .db $f9, $50 ; "5000"
       .db $fa, $50 ; "8000"
       .db $fd, $fe ; "1-UP"
+.ENDIF
 
 ;high nybble is digit number, low nybble is number to
 ;add to the digit of the player's score
+.IF TWEAK_MODERN_SCORING
+MaxFloateyValue = $08
+ScoreUpdateData:
+      .db $ff ;dummy
+      .db $42, $44, $48
+      .db $31, $32, $34, $38, $00
+.ELSE
+MaxFloateyValue = $0b
 ScoreUpdateData:
       .db $ff ;dummy
       .db $41, $42, $44, $45, $48
       .db $31, $32, $34, $35, $38, $00
+.ENDIF
 
 FloateyNumbersRoutine:
               lda FloateyNum_Control,x     ;load control for floatey number
               beq EndExitOne               ;if zero, branch to leave
-              cmp #$0b                     ;if less than $0b, branch
+              cmp #MaxFloateyValue         ;if less than $0b, branch
               bcc ChkNumTimer
-              lda #$0b                     ;otherwise set to $0b, thus keeping
+              lda #MaxFloateyValue         ;otherwise set to $0b, thus keeping
               sta FloateyNum_Control,x     ;it in range
 ChkNumTimer:  tay                          ;use as Y
               lda FloateyNum_Timer,x       ;check value here
@@ -631,7 +655,7 @@ ChkNumTimer:  tay                          ;use as Y
 DecNumTimer:  dec FloateyNum_Timer,x       ;decrement value here
               cmp #$2b                     ;if not reached a certain point, branch  
               bne ChkTallEnemy
-              cpy #$0b                     ;check offset for $0b
+              cpy #MaxFloateyValue         ;check offset for $0b
               bne LoadNumTiles             ;branch ahead if not found
             .IF TWEAK_FIX_LIVES
               jsr AddLife
@@ -9551,7 +9575,7 @@ SetDBSte: sta Enemy_State,x          ;set defeated enemy state
           lda #Sfx_BowserFall
           sta Square2SoundQueue      ;load bowser defeat sound
           ldx $01                    ;get enemy offset
-          lda #$09                   ;award 5000 points to player for defeating bowser
+          lda #$09                   ;award 5000 points to player for defeating bowser TO-DO: modern scoring
           bne EnemySmackScore        ;unconditional branch to award points
 
 ChkOtherEnemies:
@@ -9563,7 +9587,7 @@ ChkOtherEnemies:
       bcs ExHCF                 ;branch to leave if identifier => $15
 
 ShellOrBlockDefeat:
-      lda Enemy_ID,x            ;check for piranha plant
+      lda Enemy_ID,x            ;check for piranha plant TO-DO: modern scoring
       cmp #PiranhaPlant
       bne StnE                  ;branch if not found
       lda Enemy_Y_Position,x
@@ -9581,7 +9605,7 @@ StnE: jsr ChkToStunEnemies      ;do yet another sub
       lda #$06                  ;award 1000 points for hammer bro
 
 GoombaPoints:
-      cpy #Goomba               ;check for goomba
+      cpy #Goomba               ;check for goomba TO-DO: modern scoring
       bne EnemySmackScore       ;branch if not found
       lda #$01                  ;award 100 points for goomba
 
@@ -9713,9 +9737,10 @@ UpToFiery:
 NoPUp: rts
 
 ;--------------------------------
-
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ResidualXSpdData:
       .db $18, $e8
+.ENDIF
 
 KickedShellXSpdData:
       .db $30, $d0
@@ -10542,7 +10567,7 @@ BHalf: ldy $eb                   ;load block adder offset
        bne SideCheckLoop         ;run code until both sides of player are checked
 ExSCH: rts                       ;leave
 
-CheckSideMTiles:
+CheckSideMTiles: ;To-do: make invisible block collision work better
           jsr ChkInvisibleMTiles     ;check for hidden or coin 1-up blocks
           beq ExCSM                  ;branch to leave if either found
           jsr CheckForClimbMTiles    ;check for climbable metatiles
