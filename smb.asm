@@ -4965,11 +4965,16 @@ FlagpoleRoutine:
            sta FlagpoleFNum_Y_Pos    ;and store vertical coordinate here
 SkipScore: jmp FPGfx                 ;jump to skip ahead and draw flag and floatey number
 GiveFPScr: ldy FlagpoleScore         ;get score offset from earlier (when player touched flagpole)
-           lda FlagpoleScoreMods,y   ;get amount to award player points
+      .IF TWEAK_FLAGPOLE_1UP
+           bne NoFUp
+           jsr AddLife
+           jmp GotFUp
+      .ENDIF
+NoFUp:     lda FlagpoleScoreMods,y   ;get amount to award player points
            ldx FlagpoleScoreDigits,y ;get digit with which to award points
            sta DigitModifier,x       ;store in digit modifier
            jsr AddToScore            ;do sub to award player points depending on height of collision
-           lda #$05
+GotFUp:    lda #$05
            sta GameEngineSubroutine  ;set to run end-of-level subroutine on next frame
 FPGfx:     jsr GetEnemyOffscreenBits ;get offscreen information
            jsr RelativeEnemyPosition ;get relative coordinates
@@ -11815,7 +11820,11 @@ NoHOffscr:  rts                         ;leave
 ;$05 - used as X coordinate for floatey number
 
 FlagpoleScoreNumTiles:
+.IF TWEAK_FLAGPOLE_1UP
+      .db $fd, $fe
+.ELSE
       .db $f9, $50
+.ENDIF
       .db $f7, $50
       .db $fa, $fb
       .db $f8, $fb
