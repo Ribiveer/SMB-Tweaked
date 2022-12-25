@@ -9603,6 +9603,10 @@ PlayerHammerCollision:
         bne ExPHC                 ;if collision flag already set, branch to leave
         lda #$01
         sta Misc_Collision_Flag,x ;otherwise set collision flag now
+.IF TWEAK_REMOVE_HAMMER_BOUNCE
+        lda StarInvincibleTimer   ;if star mario invincibility timer set,
+        bne HammerBounce          ;only then you can bounce
+.ELSE
         lda Misc_X_Speed,x
         eor #$ff                  ;get two's compliment of
         clc                       ;hammer's horizontal speed
@@ -9610,10 +9614,21 @@ PlayerHammerCollision:
         sta Misc_X_Speed,x        ;set to send hammer flying the opposite direction
         lda StarInvincibleTimer   ;if star mario invincibility timer set,
         bne ExPHC                 ;branch to leave
+.ENDIF
         jmp InjurePlayer          ;otherwise jump to hurt player, do not return
 ClHCol: lda #$00                  ;clear collision flag
         sta Misc_Collision_Flag,x
 ExPHC:  rts
+
+.IF TWEAK_REMOVE_HAMMER_BOUNCE
+HammerBounce:
+        lda Misc_X_Speed,x
+        eor #$ff                  ;get two's compliment of
+        clc                       ;hammer's horizontal speed
+        adc #$01
+        sta Misc_X_Speed,x        ;set to send hammer flying the opposite direction
+        rts
+.ENDIF
 
 ;-------------------------------------------------------------------------------------
 
