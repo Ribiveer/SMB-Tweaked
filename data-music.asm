@@ -45,7 +45,11 @@ ResidualHeaderData:   .db $20, $c4, $fc, $3f, $1d
 UndergroundMusHdr:    .db $18, <UndergroundMusData, >UndergroundMusData, $00, $00
 SilenceHdr:           .db $08, <SilenceData, >SilenceData, $00
 CastleMusHdr:         .db $00, <CastleMusData, >CastleMusData, $93, $62
+.IF TWEAK_VICTORY_B_SECTION
+VictoryMusHdr:        .db $10, <VictoryMusData, >VictoryMusData, $54, $30
+.ELSE
 VictoryMusHdr:        .db $10, <VictoryMusData, >VictoryMusData, $24, $14
+.ENDIF
 GameOverMusHdr:       .db $18, <GameOverMusData, >GameOverMusData, $1e, $14
 WaterMusHdr:          .db $08, <WaterMusData, >WaterMusData, $a0, $70, $68
 WinCastleMusHdr:      .db $08, <EndOfCastleMusData, >EndOfCastleMusData, $4c, $24
@@ -327,17 +331,44 @@ EndOfCastleMusData:
       .db $81, $28, $87, $2c, $2c, $2c, $84, $30
 
 VictoryMusData:
+;Square 2 (harmony)
       .db $83, $04, $84, $0c, $83, $62, $10, $84, $12
       .db $83, $1c, $22, $1e, $22, $26, $18, $1e, $04, $1c, $00
 
-      .db $e3, $e1, $e3, $1d, $de, $e0, $23
-      .db $ec, $75, $74, $f0, $f4, $f6, $ea, $31, $2d
+.IF TWEAK_VICTORY_B_SECTION
+      .db $83, $22, $84, $24, $86, $24, $84, $1e, $87, $1c, $18
+      .db $83, $1c, $85, $26, $81, $26, $84, $26, $86, $1e, $82, $24, $84, $22, $83, $1e
+      .db $00
+.ENDIF
 
+;Square 1 (melody)
+      .db $e3, $e1, $e3, $1d, $de, $e0, $23
+      .db $ec, $75, $74, $f0, $f4, $f6, $ea, $31
+.IF TWEAK_VICTORY_B_SECTION
+      .db $ec 
+
+      .db $ff, $ff, $ff, $ff  ;padding for my cool stunt
+      ;--------
+      .db $75, $74, $35, $ab, $b0, $b1, $ed, $eb, $ec
+      .db $77, $76, $37, $ad, $b0, $35, $f0  
+.ELSE
+      .db $2d
+.ENDIF
+
+;Triangle
       .db $83, $12, $14, $04, $18, $1a, $1c, $14
       .db $26, $22, $1e, $1c, $18, $1e, $22, $0c, $14
 
+.IF (1-TWEAK_SMALL_OPTIMISATIONS) + TWEAK_VICTORY_B_SECTION
 ;unused space
       .db $ff, $ff, $ff
+.ENDIF
+
+.IF TWEAK_VICTORY_B_SECTION
+      .db $12, $1c, $20, $24, $2a, $26, $24, $26
+      .db $81, $24, $83 ;extend this note for a bit to match timing. VS. does it differently, so I'll have to have a look into that
+      .db $22, $1e, $22, $24, $1e, $22, $0c, $1e
+.ENDIF
 
 FreqRegLookupTbl:
       .db $00, $88, $00, $2f, $00, $00

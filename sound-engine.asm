@@ -665,11 +665,28 @@ FindEventMusicHeader:
         bcc FindEventMusicHeader
 
 LoadHeader:
+.IF TWEAK_VICTORY_B_SECTION
+        lda #$00
+        sta $00
+        lda MusicHeaderOffsetData,y  ;load offset for header
+        ldx VictoryLoopCounter
+        cpx #$02
+        bne NoVCL
+        ldx #$14 ;set offset for loop B
+        stx $00
+NoVCL:  tay
+        lda MusicHeaderData,y        ;now load the header
+        sta NoteLenLookupTblOfs
+        lda MusicHeaderData+1,y
+        clc
+        adc $00
+.ELSE
         lda MusicHeaderOffsetData,y  ;load offset for header
         tay
         lda MusicHeaderData,y        ;now load the header
         sta NoteLenLookupTblOfs
         lda MusicHeaderData+1,y
+.ENDIF
         sta MusicDataLow
         lda MusicHeaderData+2,y
         sta MusicDataHigh
@@ -694,10 +711,24 @@ LoadHeader:
         sta SND_MASTERCTRL_REG
 
 HandleSquare2Music:
+.IF TWEAK_VICTORY_B_SECTION
+        dec Squ2_NoteLenCounter  ;decrement square 2 note length
+        bne JmpMiscSqu2MusicTasks   ;is it time for more data?  if not, branch to end tasks
+IncSqr2:
+        ldy MusicOffset_Square2  ;increment square 2 music offset and fetch data
+        inc MusicOffset_Square2
+        lda VictoryLoopCounter
+        cmp #$03
+        bne NoVLSkip
+        cpy #$12
+        beq IncSqr2
+NoVLSkip:
+.ELSE
         dec Squ2_NoteLenCounter  ;decrement square 2 note length
         bne MiscSqu2MusicTasks   ;is it time for more data?  if not, branch to end tasks
         ldy MusicOffset_Square2  ;increment square 2 music offset and fetch data
         inc MusicOffset_Square2
+.ENDIF
         lda (MusicData),y
         beq EndOfMusicData       ;if zero, the data is a null terminator
         bpl Squ2NoteHandler      ;if non-negative, data is a note
@@ -714,7 +745,17 @@ EndOfMusicData:
         lda AreaMusicBuffer_Alt  ;load previously saved contents of primary buffer
         bne MusicLoopBack        ;and start playing the song again if there is one
 NotTRO: and #VictoryMusic        ;check for victory music (the only secondary that loops)
+.IF TWEAK_VICTORY_B_SECTION
+        beq NotVM
+        ldy VictoryLoopCounter
+        cpy #$03
+        bcc LoopVM
+        lda #GameOverMusic | #EndOfLevelMusic
+        sta EventMusicBuffer
+LoopVM: 
+.ENDIF
         bne VictoryMLoopBack
+NotVM:
         lda AreaMusicBuffer      ;check primary buffer for any music except pipe intro
         and #%01011111
         bne MusicLoopBack        ;if any area music except pipe intro, music loops
@@ -731,7 +772,15 @@ MusicLoopBack:
         jmp HandleAreaMusicLoopB
 
 VictoryMLoopBack:
+.IF TWEAK_VICTORY_B_SECTION
+        inc VictoryLoopCounter
+.ENDIF
         jmp LoadEventMusic
+
+.IF TWEAK_VICTORY_B_SECTION
+JmpMiscSqu2MusicTasks:
+        jmp MiscSqu2MusicTasks
+.ENDIF
 
 Squ2LengthHandler:
         jsr ProcessLengthData    ;store length of note

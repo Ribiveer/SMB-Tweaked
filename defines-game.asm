@@ -504,4 +504,5 @@ GroundMusicHeaderOfs  = $07c7
 AltRegContentFlag     = $07ca
 
 ;TO-DO: find a good RAM value for this
-EnemyDefeatPitch      = $010e   ;this is the residual flagpole value that shouldn't interfere too much for now.
+EnemyDefeatPitch      = $010e   ;this is the residual flagpole value that shouldn't interfere too much for now, especially with the optimisation Tweak
+VictoryLoopCounter    = $03f0   ;this is a residual block counter. It shouldn't interfere with anything, especially with the optimisation Tweak
