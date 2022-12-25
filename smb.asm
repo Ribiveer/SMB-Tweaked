@@ -4954,10 +4954,12 @@ FlagpoleRoutine:
            lda Enemy_Y_Position,x    ;get flag's vertical coordinate
            adc #$01                  ;add 1 plus carry to move flag, and
            sta Enemy_Y_Position,x    ;store vertical coordinate
+      .IF !TWEAK_SMALL_OPTIMISATIONS
            lda FlagpoleFNum_YMFDummy
            sec                       ;subtract movement amount from dummy variable
            sbc #$ff
            sta FlagpoleFNum_YMFDummy ;save dummy variable
+      .ENDIF
            lda FlagpoleFNum_Y_Pos
            sbc #$01                  ;subtract one plus borrow to move floatey number,
            sta FlagpoleFNum_Y_Pos    ;and store vertical coordinate here
@@ -5269,8 +5271,10 @@ ProcHammerObj:
           tax                        ;return offset to X
           lda #$10
           sta $00                    ;set downward movement force
+      .IF !TWEAK_SMALL_OPTIMISATIONS
           lda #$0f
           sta $01                    ;set upward movement force (not used)
+      .ENDIF
           lda #$04
           sta $02                    ;set maximum vertical speed
           lda #$00                   ;set A to impose gravity on hammer
@@ -9848,8 +9852,8 @@ ChkETmrs: lda StompTimer         ;check stomp timer
           lda InjuryTimer        ;check to see if injured invincibility timer still
           bne ExInjColRoutines   ;counting down, and branch elsewhere to leave if so
       .IF TWEAK_MODERN_ENEMY_MOVEMENT
-          beq InjurePlayer       ;hurt the player.
       .ELSE
+      .IF !TWEAK_MODERN_ENEMY_MOVEMENT
           lda Player_Rel_XPos
           cmp Enemy_Rel_XPos     ;if player's relative position to the left of enemy's
           bcc TInjE              ;relative position, branch here
@@ -9915,7 +9919,6 @@ KillPlayer:
       bne SetKRout         ;branch to set player's state and other things
 
 StompedEnemyPtsData:
-      .db $02, $06, $05, $06
 
 EnemyStomped:
       lda Enemy_ID,x             ;check for spiny, branch to hurt player
@@ -11063,7 +11066,9 @@ ChkLandedEnemyState:
            beq ProcEnemyDirection    ;then branch elsewhere
            cmp #$03                  ;if already in state used by koopas and buzzy beetles
            bcs ExSteChk              ;or in higher numbered state, branch to leave
+.IF !TWEAK_SMALL_OPTIMISATIONS
            lda Enemy_State,x         ;load enemy state again (why?)
+.ENDIF
            cmp #$02                  ;if not in $02 state (used by koopas and buzzy beetles)
            bne ProcEnemyDirection    ;then branch elsewhere
            lda #$10                  ;load default timer here
@@ -11562,6 +11567,7 @@ BlockBufferChk_Enemy:
       pla        ;pull A from stack and jump elsewhere
       jmp BBChk_E
 
+.IF !TWEAK_SMALL_OPTIMISATIONS
 ResidualMiscObjectCode:
       txa
       clc           ;supposedly used once to set offset for
@@ -11569,6 +11575,7 @@ ResidualMiscObjectCode:
       tax
       ldy #$1b      ;supposedly used once to set offset for block buffer data
       jmp ResJmpM   ;probably used in early stages to do misc to bg collision detection
+.ENDIF
 
 BlockBufferChk_FBall:
          ldy #$1a                  ;set offset for block buffer adder data
