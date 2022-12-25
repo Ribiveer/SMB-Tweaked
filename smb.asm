@@ -7959,7 +7959,9 @@ NotDefB: lda #$e8                   ;set bullet bill's horizontal speed
 
 SwimCCXMoveData:
       .db $40, $80
+.IF !TWEAK_SMALL_OPTIMISATIONS
       .db $04, $04 ;residual data, not used
+.ENDIF
 
 MoveSwimmingCheepCheep:
         lda Enemy_State,x         ;check cheep-cheep's enemy object state
@@ -8091,7 +8093,9 @@ SkpFSte:  clc
           sta FirebarSpinState_High,x
 SetupGFB: sta $ef                     ;save high byte of spinning thing, modified or otherwise
           jsr RelativeEnemyPosition   ;get relative coordinates to screen
+      .IF !TWEAK_SMALL_OPTIMISATIONS
           jsr GetFirebarPosition      ;do a sub here (residual, too early to be used now)
+      .ENDIF
           ldy Enemy_SprDataOffset,x   ;get OAM data offset
           lda Enemy_Rel_YPos          ;get relative vertical coordinate
           sta Sprite_Y_Position,y     ;store as Y in OAM data
@@ -9023,7 +9027,9 @@ FirebarSpin:
       sta $07                     ;save spinning speed here
       lda FirebarSpinDirection,x  ;check spinning direction
       bne SpinCounterClockwise    ;if moving counter-clockwise, branch to other part
+.IF !TWEAK_SMALL_OPTIMISATIONS
       ldy #$18                    ;possibly residual ldy
+.ENDIF
       lda FirebarSpinState_Low,x
       clc                         ;add spinning speed to what would normally be
       adc $07                     ;the horizontal speed
@@ -9033,7 +9039,9 @@ FirebarSpin:
       rts
 
 SpinCounterClockwise:
+.IF !TWEAK_SMALL_OPTIMISATIONS
       ldy #$08                    ;possibly residual ldy
+.ENDIF
       lda FirebarSpinState_Low,x
       sec                         ;subtract spinning speed to what would normally be
       sbc $07                     ;the horizontal speed
@@ -9344,7 +9352,9 @@ ExDPl: rts                          ;leave
 
 RightPlatform:
        jsr MoveEnemyHorizontally     ;move platform with current horizontal speed, if any
+.IF !TWEAK_SMALL_OPTIMISATIONS
        sta $00                       ;store saved value here (residual code)
+.ENDIF
        lda PlatformCollisionFlag,x   ;check collision flag, if no collision between player
        bmi ExRPl                     ;and platform, branch ahead, leave speed unaltered
        lda #$10
