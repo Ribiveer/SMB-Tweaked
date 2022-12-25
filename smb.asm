@@ -4924,11 +4924,19 @@ WhPull: lda #$10
 
 ;-------------------------------------------------------------------------------------
 
+.IF TWEAK_FLAGPOLE_1UP
+FlagpoleScoreMods:
+      .db $02, $08, $04, $01
+
+FlagpoleScoreDigits:
+      .db $03, $04, $04, $04
+.ELSE
 FlagpoleScoreMods:
       .db $05, $02, $08, $04, $01
 
 FlagpoleScoreDigits:
       .db $03, $03, $04, $04, $04
+.ENDIF
 
 FlagpoleRoutine:
            ldx #$05                  ;set enemy object offset
