@@ -597,6 +597,7 @@ EndExitTwo:    rts                        ;leave
 ;that appear when you defeat enemies
 .IF TWEAK_MODERN_SCORING
 PowerUpFloatey = $04
+BowserFloatey = $07
 FloateyNumTileData:
       .db $ff, $ff ;dummy
       .db $f7, $fb ; "200"
@@ -609,6 +610,7 @@ FloateyNumTileData:
       .db $fd, $fe ; "1-UP"
 .ELSE
 PowerUpFloatey = $06
+BowserFloatey = $09
 FloateyNumTileData:
       .db $ff, $ff ;dummy
       .db $f6, $fb ; "100"
@@ -5027,6 +5029,10 @@ BounceJS:  cpy #$03                    ;check frame control offset again
            bne DrawJSpr                ;skip to last part if not yet at fifth frame ($03)
            lda JumpspringForce
            sta Player_Y_Speed          ;store jumpspring force as player's new vertical speed
+      .IF TWEAK_PAL_FIX_SPRING_FORCE
+           lda #$40                    ;PAL bugfix: Define vertical acceleration on springs (was undefined on NTSC)
+           sta VerticalForce
+      .ENDIF
            lda #$00
            sta JumpspringAnimCtrl      ;initialize jumpspring frame control
 DrawJSpr:  jsr RelativeEnemyPosition   ;get jumpspring's relative coordinates
@@ -5499,7 +5505,7 @@ NoZSup: ldx ObjectOffset          ;get enemy object buffer offset
 
 ;-------------------------------------------------------------------------------------
 
-SetupPowerUp:
+SetupPowerUp: ;TO-DO: star auto jump
            lda #PowerUpObject        ;load power-up identifier into
            sta Enemy_ID+5            ;special use slot of enemy object buffer
            lda Block_PageLoc,x       ;store page location of block object
@@ -5575,6 +5581,13 @@ GrowThePowerUp:
 ChkPUSte:  lda Enemy_State+5          ;check power-up object's state
            cmp #$06                   ;for if power-up has risen enough
            bcc ExitPUp                ;if not, don't even bother running these routines
+.IF TWEAK_FIX_STAR_JUMP
+           lda PowerUpType
+           cmp #$02                   ;check if this is a star
+           bne RunPUSubs              ;if not, move along.
+           lda #$fd
+           sta Enemy_Y_Speed,x        ;otherwise, set y speed.
+.ENDIF
 RunPUSubs: jsr RelativeEnemyPosition  ;get coordinates relative to screen
            jsr GetEnemyOffscreenBits  ;get offscreen bits
            jsr GetEnemyBoundBox       ;get bounding box coordinates
@@ -7604,8 +7617,10 @@ PdbM: jmp MoveJ_EnemyVertically  ;branch to impose gravity on podoboo
 HammerThrowTmrData:
       .db $30, $1c
 
+.IF !TWEAK_CONSISTENT_SHELL_AIR_SPEED
 XSpeedAdderData:
       .db $00, $e8, $00, $18
+.ENDIF
 
 RevivedXSpeed:
       .db $08, $f8, $0c, $f4
@@ -9293,12 +9308,14 @@ InitPlatformFall:
       tya                        ;move offset of other platform from Y to X
       tax
       jsr GetEnemyOffscreenBits  ;get offscreen bits
+.IF !TWEAK_MODERN_SCORING
       lda #$06
-      jsr SetupFloateyNumber     ;award 1000 points to player
+      jsr SetupFloateyNumber     ;award 1000 points to playerx
       lda Player_Rel_XPos
       sta FloateyNum_X_Pos,x     ;put floatey number coordinates where player is
       lda Player_Y_Position
       sta FloateyNum_Y_Pos,x
+.ENDIF
       lda #$01                   ;set moving direction as flag for
       sta Enemy_MovingDir,x      ;falling platforms
 
@@ -9592,8 +9609,12 @@ SetDBSte: sta Enemy_State,x          ;set defeated enemy state
           lda #Sfx_BowserFall
           sta Square2SoundQueue      ;load bowser defeat sound
           ldx $01                    ;get enemy offset
-          lda #$09                   ;award 5000 points to player for defeating bowser TO-DO: modern scoring
+          lda #BowserFloatey         ;award 5000 (or 8000) points to player for defeating bowser
+      .IF TWEAK_MODERN_SCORING
+          jsr SetupFloateyNumber
+      .ELSE
           bne EnemySmackScore        ;unconditional branch to award points
+      .ENDIF
 
 ChkOtherEnemies:
       cmp #BulletBill_FrenzyVar
@@ -9602,6 +9623,10 @@ ChkOtherEnemies:
       beq ExHCF                 ;branch to leave if podoboo
       cmp #$15       
       bcs ExHCF                 ;branch to leave if identifier => $15
+.IF TWEAK_MODERN_SCORING
+      lda #$00
+      jsr SetupEnemyFloatey
+.ENDIF
 
 ShellOrBlockDefeat:
       lda Enemy_ID,x            ;check for piranha plant TO-DO: modern scoring
@@ -9615,6 +9640,7 @@ StnE: jsr ChkToStunEnemies      ;do yet another sub
       and #%00011111            ;mask out 2 MSB of enemy object's state
       ora #%00100000            ;set d5 to defeat enemy and save as new state
       sta Enemy_State,x
+.IF !TWEAK_MODERN_SCORING
       lda #$02                  ;award 200 points by default
       ldy Enemy_ID,x            ;check for hammer bro
       cpy #HammerBro
@@ -9628,6 +9654,8 @@ GoombaPoints:
 
 EnemySmackScore:
        jsr SetupFloateyNumber   ;update necessary score variables
+.ENDIF
+QueueEnemySmack:
        lda #Sfx_EnemySmack      ;play smack enemy sound
        sta Square1SoundQueue
 ExHCF: rts                      ;and now let's leave
@@ -9685,7 +9713,7 @@ HammerBounce:
 
 HandlePowerUpCollision:
       jsr EraseEnemyObject    ;erase the power-up object
-      lda #$06
+      lda #PowerUpFloatey
       jsr SetupFloateyNumber  ;award 1000 points to player by default
       lda #Sfx_PowerUpGrab
       sta Square2SoundQueue   ;play the power-up sound
@@ -9795,10 +9823,18 @@ CheckForPUpCollision:
        jmp HandlePowerUpCollision    ;otherwise, unconditional jump backwards
 EColl: lda StarInvincibleTimer       ;if star mario invincibility timer expired,
        beq HandlePECollisions        ;perform task here, otherwise kill enemy like
+      .IF TWEAK_MODERN_SCORING
+       lda StompChainCounter
+       sta EnemyDefeatPitch
+       jsr SetupEnemyFloatey
+       sta StompChainCounter
+      .ENDIF
        jmp ShellOrBlockDefeat        ;hit with a shell, or from beneath
 
+.IF !TWEAK_MODERN_SCORING
 KickedShellPtsData:
       .db $0a, $06, $04
+.ENDIF
 
 HandlePECollisions:
        lda Enemy_CollisionBits,x    ;check enemy collision bits for d0 set
@@ -9838,6 +9874,11 @@ HandlePECollisions:
        jsr EnemyFacePlayer          ;set moving direction and get offset
        lda KickedShellXSpdData,y    ;load and set horizontal speed data with offset
        sta Enemy_X_Speed,x
+      .IF TWEAK_MODERN_SCORING
+       lda #$00
+       sta EnemyDefeatPitch
+       jsr SetupEnemyFloatey
+      .ELSE
        lda #$03                     ;add three to whatever the stomp counter contains
        clc                          ;to give points for kicking the shell
        adc StompChainCounter
@@ -9846,18 +9887,28 @@ HandlePECollisions:
        bcs KSPts                    ;data obtained from the stomp counter + 3
        lda KickedShellPtsData,y     ;otherwise, set points based on proximity to timer expiration
 KSPts: jsr SetupFloateyNumber       ;set values for floatey number now
+      .ENDIF
 ExPEC: rts                          ;leave!!!
 
 ChkForPlayerInjury:
           lda Player_Y_Speed     ;check player's vertical speed
           bmi ChkInj             ;perform procedure below if player moving upwards
           bne EnemyStomped       ;or not at all, and branch elsewhere if moving downwards
+      .IF TWEAK_PAL_FIX_STOMPING
+ChkInj:   lda #$14               ;PAL bugfix: Vertical difference deciding whether Mario stomped or got hit depends on the enemy
+          ldy Enemy_ID,x         ;branch if enemy object < $07
+          cpy #FlyingCheepCheep
+          bne ChkInj2
+          lda #$07
+ChkInj2:  adc Player_Y_Position
+      .ELSE
 ChkInj:   lda Enemy_ID,x         ;branch if enemy object < $07
           cmp #Bloober
           bcc ChkETmrs
           lda Player_Y_Position  ;add 12 pixels to player's vertical position
           clc
           adc #$0c
+      .ENDIF
           cmp Enemy_Y_Position,x ;compare modified player's position to enemy's position
           bcc EnemyStomped       ;branch if this player's position above (less than) enemy's
 ChkETmrs: lda StompTimer         ;check stomp timer
@@ -9929,14 +9980,36 @@ KillPlayer:
       lda #$0b             ;set subroutine to run on next frame
       bne SetKRout         ;branch to set player's state and other things
 
+.IF !TWEAK_MODERN_SCORING
 StompedEnemyPtsData:
+      .db $02, $06, $05, $06
+.ENDIF
 
 EnemyStomped:
       lda Enemy_ID,x             ;check for spiny, branch to hurt player
       cmp #Spiny                 ;if found
       beq InjurePlayer
-      lda #Sfx_EnemyStomp        ;otherwise play stomp/swim sound
+      lda #Sfx_EnemyStomp        ;play stomp sound
       sta Square1SoundQueue
+.IF TWEAK_MODERN_SCORING
+      inc StompTimer             ;set stomp flag
+      lda StompChainCounter      ;load the chain counter
+      sta EnemyDefeatPitch       ;The initial value will double as our effect pitch
+      jsr SetupEnemyFloatey      ;setup a floatey and increase the counter
+      sta StompChainCounter      ;so set it in there
+      lda Enemy_ID,x             ;if enemy ID = 0
+      beq ChkForDemoteKoopa      ;then check for defeat
+      cmp #GreenParatroopaFly+1
+      bcs EnemyStompedPts        ;Check if Enemy_ID > GreenParatroopaFly. Then it's for sure no Koopa.
+      cmp #GreenParatroopaJump
+      bcs ChkForDemoteKoopa      ;Check if Enemy_ID >= GreenParatroopaJump. Then it's a Paratroopa.
+      cmp #Goomba
+      beq ChkForDemoteKoopa      ;Did you know that Goombas are Koopas? So true, bestie
+      cmp #RedKoopa+1
+      bcc ChkForDemoteKoopa      ;Check if Enemy_ID <= RedKoopa. Those are also Koopas.
+
+.ELSE
+
       lda Enemy_ID,x
       ldy #$00                   ;initialize points data offset for stomped enemies
       cmp #FlyingCheepCheep      ;branch for cheep-cheep
@@ -9957,9 +10030,14 @@ EnemyStomped:
       cmp #Bloober               ;branch if NOT bloober
       bne ChkForDemoteKoopa
 
+.ENDIF
+
+
 EnemyStompedPts:
+.IF !TWEAK_MODERN_SCORING
       lda StompedEnemyPtsData,y  ;load points data using offset in Y
       jsr SetupFloateyNumber     ;run sub to set floatey number controls
+.ENDIF
       lda Enemy_MovingDir,x
       pha                        ;save enemy movement direction to stack
       jsr SetStun                ;run sub to kill enemy
@@ -9984,8 +10062,10 @@ ChkForDemoteKoopa:
       sta Enemy_ID,x
       ldy #$00                   ;return enemy to normal state
       sty Enemy_State,x
+.IF !TWEAK_MODERN_SCORING
       lda #$03                   ;award 400 points to the player
       jsr SetupFloateyNumber
+.ENDIF
       jsr InitVStf               ;nullify physics-related thing and vertical speed
 .IF TWEAK_MODERN_ENEMY_MOVEMENT    
       inc StompTimer             ;make sure we hear the stomp sound.
@@ -10002,13 +10082,13 @@ RevivalRateData:
 HandleStompedShellE:
        lda #$04                   ;set defeated state for enemy
        sta Enemy_State,x
-
-HandleStomp:
+.IF !TWEAK_MODERN_SCORING
        inc StompChainCounter      ;increment the stomp counter
        lda StompChainCounter      ;add whatever is in the stomp counter
        clc                        ;to whatever is in the stomp timer
        adc StompTimer
        jsr SetupFloateyNumber     ;award points accordingly
+.ENDIF
        inc StompTimer             ;increment stomp timer of some sort
        ldy PrimaryHardMode        ;check primary hard mode flag
        lda RevivalRateData,y      ;load timer setting according to flag
@@ -10060,6 +10140,35 @@ SetupFloateyNumber:
        lda Enemy_Rel_XPos
        sta FloateyNum_X_Pos,x   ;set horizontal coordinate and leave
 ExSFN: rts
+
+.IF TWEAK_MODERN_SCORING
+; To-do: THIS COULD PROBABLY BE HEAVILY OPTIMISED!!!
+;In x, we put the enemy
+;In a, we get the stompchaincounter in and out.
+SetupEnemyFloatey:
+      sty $00
+      cmp #$08          ;if stomp counter at 8, don't increment anymore
+      beq EnemyStompedPtsNormal
+      tay
+      iny
+      tya
+      cmp #$04
+      bcs EnemyStompedPtsNormal
+      ldy Enemy_ID,x
+      cpy #HammerBro
+      beq EnemyStompedPtsSuper
+      cpy #Lakitu
+      beq EnemyStompedPtsSuper
+      bne EnemyStompedPtsNormal
+EnemyStompedPtsSuper:
+      lda #$04
+EnemyStompedPtsNormal:
+      pha
+      jsr SetupFloateyNumber
+      pla
+      ldy $00
+      rts
+.ENDIF
 
 ;-------------------------------------------------------------------------------------
 ;$01 - used to hold enemy offset for second enemy
@@ -10155,8 +10264,10 @@ ProcEnemyCollisions:
       lda Enemy_State,y        ;check first enemy state for d7 set
       asl
       bcc ShellCollisions      ;branch if d7 is clear
+.IF !TWEAK_MODERN_SCORING
       lda #$06
       jsr SetupFloateyNumber   ;award 1000 points for killing enemy
+.ENDIF
       jsr ShellOrBlockDefeat   ;then kill enemy, then load
       ldy $01                  ;original offset of second enemy
 
@@ -10166,12 +10277,19 @@ ShellCollisions:
       jsr ShellOrBlockDefeat   ;kill second enemy
       ldx ObjectOffset
       lda ShellChainCounter,x  ;get chain counter for shell
+.IF TWEAK_MODERN_SCORING
+      sta EnemyDefeatPitch
+      jsr SetupEnemyFloatey
+      sta ShellChainCounter,x
+      ldx ObjectOffset         ;load original offset of first enemy
+.ELSE
       clc
       adc #$04                 ;add four to get appropriate point offset
       ldx $01
       jsr SetupFloateyNumber   ;award appropriate number of points for second enemy
       ldx ObjectOffset         ;load original offset of first enemy
       inc ShellChainCounter,x  ;increment chain counter for additional enemies
+.ENDIF
 
 ExitProcessEColl:
       rts                      ;leave!!!
@@ -10186,12 +10304,20 @@ ProcSecondEnemyColl:
       jsr ShellOrBlockDefeat   ;otherwise, kill first enemy
       ldy $01
       lda ShellChainCounter,y  ;get chain counter for shell
+.IF TWEAK_MODERN_SCORING
+      lda ShellChainCounter,y
+      sta EnemyDefeatPitch
+      jsr SetupEnemyFloatey
+      sta ShellChainCounter,y
+      ldx $01                  ;load original offset of second enemy
+.ELSE
       clc
       adc #$04                 ;add four to get appropriate point offset
       ldx ObjectOffset
       jsr SetupFloateyNumber   ;award appropriate number of points for first enemy
       ldx $01                  ;load original offset of second enemy
       inc ShellChainCounter,x  ;increment chain counter for additional enemies
+.ENDIF
       rts                      ;leave!!!
 
 MoveEOfs:
@@ -10200,7 +10326,7 @@ MoveEOfs:
       jsr EnemyTurnAround      ;do the sub here using value from $01
       ldx ObjectOffset         ;then do it again using value from $08
 
-EnemyTurnAround:
+EnemyTurnAround: ;TO-DO: investigate why my original hack had extra junk here
        lda Enemy_ID,x           ;check for specific enemies
        cmp #PiranhaPlant
        beq ExTA                 ;if piranha plant, leave
@@ -10541,6 +10667,10 @@ LandPlyr: jsr ChkForLandJumpSpring   ;do sub to check for jumpspring metatiles a
           lda #$00
           sta Player_Y_Speed         ;initialize vertical speed and fractional
           sta Player_Y_MoveForce     ;movement force to stop player's vertical movement
+      .IF TWEAK_MODERN_SCORING
+          lda StarInvincibleTimer
+          bne InitSteP
+      .ENDIF
           sta StompChainCounter      ;initialize enemy stomp counter
 InitSteP: lda #$00
           sta Player_State           ;set player's state to normal
@@ -11006,16 +11136,26 @@ HandleEToBGCollision:
       cmp #$15                  ;if enemy object => $15, branch ahead
       bcs ChkToStunEnemies
       cmp #Goomba               ;if enemy object not goomba, branch ahead of this routine
+.IF TWEAK_FIX_SPINY_BLOCK_HIT
+      beq KEAB
+      cmp #Spiny
+      beq KEAB
+      bne GiveOEPoints
+KEAB: jsr KillEnemyAboveBlock   ;if enemy object is goomba or spiky, do this sub
+.ELSE
       bne GiveOEPoints
       jsr KillEnemyAboveBlock   ;if enemy object IS goomba, do this sub
+.ENDIF
 
 GiveOEPoints:
+.IF !TWEAK_MODERN_SCORING
       lda #$01                  ;award 100 points for hitting block beneath enemy
       jsr SetupFloateyNumber
+.ENDIF
 
 ChkToStunEnemies:
-          cmp #$09                   ;perform many comparisons on enemy object identifier
-          bcc SetStun      
+          cmp #$09                   ;if blooper, goomba, hammer bro, red koopa, buzzybeetle or greenkoopa
+          bcc SetStun                ;get stunned
           cmp #$11                   ;if the enemy object identifier is equal to the values
           bcs SetStun                ;$09, $0e, $0f or $10, it will be modified, and not
           cmp #$0a                   ;modified if not any of those values, note that piranha plant will
@@ -11258,6 +11398,10 @@ HammerBroBGColl:
       bne UnderHammerBro
 
 KillEnemyAboveBlock:
+.IF TWEAK_MODERN_SCORING
+      lda #$00
+      jsr SetupEnemyFloatey
+.ENDIF
       jsr ShellOrBlockDefeat  ;do this sub to kill enemy
       lda #$fc                ;alter vertical speed of enemy and leave
       sta Enemy_Y_Speed,x
@@ -11347,7 +11491,11 @@ BoundBoxCtrlData:
       .db $00, $00, $30, $0d
       .db $00, $00, $08, $08
       .db $06, $04, $0a, $08
+.IF TWEAK_PAL_ENLARGE_HITBOXES
+      .db $03, $0c, $0d, $14
+.ELSE
       .db $03, $0e, $0d, $14
+.ENDIF
       .db $00, $02, $10, $15
       .db $04, $04, $0c, $1c
 
@@ -12467,7 +12615,12 @@ ContES: cmp #Bloober                ;check for bloober object
         bne ESRtnr                  ;branch closer if not found
         cpx #$05                    ;check spiny's state
         bne CheckToMirrorLakitu     ;branch if not an egg, otherwise
-ESRtnr: cmp #$15                    ;check for princess/mushroom retainer object
+ESRtnr: 
+      .IF TWEAK_SPRITE_OPTIMISATIONS
+        cmp #Goomba
+        beq MirrorEnemyGfx
+      .ENDIF
+        cmp #$15                    ;check for princess/mushroom retainer object
         bne SpnySC
         lda #$42                    ;set horizontal flip on bottom right sprite
         sta Sprite_Attributes+20,y  ;note that palette bits were already set earlier
@@ -12621,10 +12774,8 @@ DrawBlock:
            sta $05                       ;store here
            lda #$03
            sta $04                       ;set attribute byte here
-      .IF !TWEAK_SMALL_OPTIMISATIONS
            lsr
-           sta $03                       ;set horizontal flip bit here (will not be used)
-      .ENDIF
+           sta $03                       ;set horizontal flip bit here (will not be flipped)
            ldy Block_SprDataOffset,x     ;get sprite data offset
            ldx #$00                      ;reset X for use as offset to tile data
 DBlkLoop:  lda DefaultBlockObjTiles,x    ;get left tile number
@@ -12934,9 +13085,15 @@ PlayerGraphicsTable:
       .db $08, $09, $28, $29, $2a, $2b, $0e, $0f ;fireball throwing
 
 ;small player table
+.IF TWEAK_FIX_REVERSED_WALK_CYCLE
+      .db $fc, $fc, $fc, $fc, $3a, $37, $3b, $3c ;walking frame 1
+      .db $fc, $fc, $fc, $fc, $36, $37, $38, $39 ;        frame 2
+      .db $fc, $fc, $fc, $fc, $32, $33, $34, $35 ;        frame 3
+.ELSE
       .db $fc, $fc, $fc, $fc, $32, $33, $34, $35 ;walking frame 1
       .db $fc, $fc, $fc, $fc, $36, $37, $38, $39 ;        frame 2
       .db $fc, $fc, $fc, $fc, $3a, $37, $3b, $3c ;        frame 3
+.ENDIF
       .db $fc, $fc, $fc, $fc, $3d, $3e, $3f, $40 ;skidding
       .db $fc, $fc, $fc, $fc, $32, $41, $42, $43 ;jumping
       .db $fc, $fc, $fc, $fc, $32, $33, $44, $45 ;swimming frame 1

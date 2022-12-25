@@ -2,13 +2,11 @@ This patch has the following changes:
 
 ----- Music Changes -----
 x There is now music on the title screen: an alternate version of the underwater theme.
-- The final victory song has been extended, with a B-section and an end.
 
 ----- Bug Fixes & Small Tweaks -----
 x Lakitus now throw their spinies as originally intended by the programmers.
 x Falling while crouching now keeps your sprite crouched.
 x While underwater, crouching no longer messes up the hitbox.
-- Small Mario's walking animation is now fixed, as opposed to playing in reverse.
 - Stars are now guaranteed to jump out of their blocks, as opposed to sometimes falling down.
 x The lives counter now displays the number of lives above 9 like normal.
 x Lives are now capped at 99 to prevent glitches.
@@ -31,37 +29,27 @@ x Holding A now allows you to bounce on enemies higher, like in later entries.
 x Getting a Fire Flower as Small Mario now turns Mario into Fire Mario, as opposed to Super Mario.
 x Getting hit as Fire Mario now turns Mario into Super Mario, as opposed to Small Mario.
 x Hidden 1-up blocks no longer despawn after dying.
-- Hitting the top of the flagpole now gives Mario a 1-up.
-- Defeating consecutive enemies with a Super Star now gives you more points, eventually giving 1-ups!
-- Defeating consecutive enemies now increases the sound effect pitch with every enemy.
+x Hitting the top of the flagpole now gives Mario a 1-up.
+x Defeating consecutive enemies with a Super Star now gives you more points, eventually giving 1-ups!
+x Defeating consecutive enemies now increases the sound effect pitch with every enemy.
 
 ----- Enemy Behaviour Changes -----
-- Hammers now travel along their arc, regardless of whether they touch Mario.
+x Hammers now travel along their arc, regardless of whether they touch Mario. They do get bounced when Mario has a star.
 x Enemies like Goombas, Koopas, Buzzy Beetles and Spinies now only change direction when walking into a wall, or when turning around on a ledge.
-- It is now possible to defeat Spinies by hitting blocks underneath them.
+x It is now possible to defeat Spinies by hitting blocks underneath them.
 
 ----- PAL Version Changes -----
 x Cheep Cheep code has been optimised.
-- The system that detects whether Mario has stomped an enemy has been improved.
+x The system that detects whether Mario has stomped an enemy has been improved.
 x Fixed springs being able to get overwritten in memory, or overwriting other memory.
-- Some enemies now have a slightly higher hitbox.
-- Spring acceleration is now defined (whatever that means).
-
------ Graphics Changes -----
-- Added small one-pixel graphics tweaks to Buzzy Beetles, Hammer Bros. and Toad.
-- Made the outlines of bushes and clouds continuous.
-- Utulised an extra sprite to add a small animation to Piranha Plants.
-- Made Toad smile more :) (might revert this change honestly)
-- The hands of Mario's growing sprite and jump sprite have been fixed.
-- Hammer Bros. now bob up and down in their animation as well.
-- Super Mario's jump sprite has been fixed to match the eyes and cap of the other sprites.
+x Some enemies now have a slightly higher hitbox.
+x Spring acceleration is now defined (whatever that means).
 
 
 possible things to do next:
 Move the timer sound effect to the other channel, so you can hear the melody of the fanfare
 add maze fail and complete sound
 add lives counter in-game
-Make crouching possible while holding left-right
 Fix hammer bros. eyes while throwing
 Make bowser flash when hit with a fireball
 Optimise enemy rendering code

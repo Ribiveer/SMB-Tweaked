@@ -503,8 +503,5 @@ PauseModeFlag         = $07c6
 GroundMusicHeaderOfs  = $07c7
 AltRegContentFlag     = $07ca
 
-FreeToUseRam          = $036b
-FreeToUseRam          = $036c
-FreeToUseRam          = $036d
-FreeToUseRam          = $036e
-FreeToUseRam          = $036f
+;TO-DO: find a good RAM value for this
+EnemyDefeatPitch      = $010e   ;this is the residual flagpole value that shouldn't interfere too much for now.

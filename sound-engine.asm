@@ -204,7 +204,11 @@ Square1SfxHandler:
        lsr Square1SoundQueue
        bcs PlaySmackEnemy      ;smack enemy
        lsr Square1SoundQueue
+.IF TWEAK_MODERN_SCORING
+       bcs GoPlayPipeDownInj     ;pipedown/injury
+.ELSE
        bcs PlayPipeDownInj     ;pipedown/injury
+.ENDIF
        lsr Square1SoundQueue
        bcs PlayFireballThrow   ;fireball throw
        lsr Square1SoundQueue
@@ -223,7 +227,11 @@ CheckSfx1Buffer:
        lsr
        bcs ContinueSmackEnemy   ;smack enemy
        lsr
+.IF TWEAK_MODERN_SCORING
+       bcs GoContinuePipeDownInj  ;pipedown/injury
+.ELSE
        bcs ContinuePipeDownInj  ;pipedown/injury
+.ENDIF
        lsr
        bcs ContinueBumpThrow    ;fireball throw
        lsr
@@ -244,11 +252,29 @@ ContinueSwimStomp:
       sta SND_SQUARE1_REG           ;envelope
       cpy #$06   
       bne BranchToDecLength1
+.IF TWEAK_MODERN_SCORING ;TO-DO: optimise this, also figure out what it was that I did here because I didn't document like ANYTHING
+      lda #%10011  
+      sec
+      sbc EnemyDefeatPitch
+      asl
+      asl
+      asl
+      ora #%00000110
+.ELSE
       lda #$9e                      ;when the length counts down to a certain point, put this
+.ENDIF
       sta SND_SQUARE1_REG+2         ;directly into the LSB of square 1's frequency divider
-
+      
 BranchToDecLength1: 
       bne DecrementSfx1Length  ;unconditional branch (regardless of how we got here)
+
+.IF TWEAK_MODERN_SCORING
+GoPlayPipeDownInj:
+        bcs PlayPipeDownInj
+
+GoContinuePipeDownInj
+        bcs ContinuePipeDownInj
+.ENDIF
 
 PlaySmackEnemy:
       lda #$0e                 ;store length of smack enemy sound
@@ -263,7 +289,17 @@ ContinueSmackEnemy:
         ldy Squ1_SfxLenCounter  ;check about halfway through
         cpy #$08
         bne SmSpc
+.IF TWEAK_MODERN_SCORING ;TO-DO: figure out what the heck I did here
+        lda #%10100
+        sec
+        sbc EnemyDefeatPitch
+        asl
+        asl
+        asl
+        ora #%00000110
+.ELSE
         lda #$a0                ;if we're at the about-halfway point, make the second tone
+.ENDIF
         sta SND_SQUARE1_REG+2   ;in the smack enemy sound
         lda #$9f
         bne SmTick
@@ -277,6 +313,9 @@ DecrementSfx1Length:
 StopSquare1Sfx:
         ldx #$00                ;if end of sfx reached, clear buffer
         stx $f1                 ;and stop making the sfx
+.IF TWEAK_MODERN_SCORING
+        stx EnemyDefeatPitch
+.ENDIF
         ldx #$0e
         stx SND_MASTERCTRL_REG
         ldx #$0f

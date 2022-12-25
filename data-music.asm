@@ -256,7 +256,9 @@ WinLevelMusData:
       .db $cd, $d5, $dd, $e3, $ed, $f5, $bb, $b5, $cf, $d5
       .db $db, $e5, $ed, $f3, $bd, $b3, $d1, $d9, $df, $e9
       .db $f1, $f7, $bf, $ff, $ff, $ff, $34
+.IF !TWEAK_SMALL_OPTIMISATIONS
       .db $00 ;unused byte
+.ENDIF
 
       .db $86, $04, $87, $14, $1c, $22, $86, $34, $84, $2c
       .db $04, $04, $04, $87, $14, $1a, $24, $86, $32, $84

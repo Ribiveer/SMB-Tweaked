@@ -1,5 +1,22 @@
 ;tiles arranged in top left, right, middle left, right, bottom left, right order
 EnemyGraphicsTable:
+.IF TWEAK_SPRITE_OPTIMISATIONS
+      .db $fc, $fc, $aa, $ab, $ac, $ad  ;buzzy beetle frame 1
+      .db $fc, $fc, $aa, $ab, $b0, $b1  ;             frame 2
+      .db $fc, $a0, $a1, $a2, $a3, $a4  ;koopa troopa frame 1
+      .db $fc, $a5, $a1, $a7, $a8, $a9  ;             frame 2
+      .db $69, $a5, $6a, $a7, $a8, $a9  ;koopa paratroopa frame 1
+      .db $6b, $a0, $6c, $a2, $a3, $a4  ;                 frame 2
+      .db $fc, $fc, $96, $97, $98, $99  ;spiny frame 1
+      .db $fc, $fc, $96, $97, $9c, $9d  ;      frame 2
+      .db $fc, $fc, $8f, $8e, $8e, $8f  ;spiny's egg frame 1
+      .db $fc, $fc, $95, $94, $94, $95  ;            frame 2
+      .db $fc, $fc, $dc, $dc, $df, $df  ;bloober frame 1
+      .db $dc, $dc, $dd, $dd, $de, $de  ;        frame 2
+      .db $fc, $fc, $b2, $b3, $b4, $b5  ;cheep-cheep frame 1
+      .db $fc, $fc, $b6, $b3, $b7, $b5  ;            frame 2
+      .db $fc, $fc, $70, $70, $72, $73  ;goomba
+.ELSE
       .db $fc, $fc, $aa, $ab, $ac, $ad  ;buzzy beetle frame 1
       .db $fc, $fc, $ae, $af, $b0, $b1  ;             frame 2
       .db $fc, $a5, $a6, $a7, $a8, $a9  ;koopa troopa frame 1
@@ -15,6 +32,7 @@ EnemyGraphicsTable:
       .db $fc, $fc, $b2, $b3, $b4, $b5  ;cheep-cheep frame 1
       .db $fc, $fc, $b6, $b3, $b7, $b5  ;            frame 2
       .db $fc, $fc, $70, $71, $72, $73  ;goomba
+.ENDIF
       .db $fc, $fc, $6e, $6e, $6f, $6f  ;koopa shell frame 1 (upside-down)
       .db $fc, $fc, $6d, $6d, $6f, $6f  ;            frame 2
       .db $fc, $fc, $6f, $6f, $6e, $6e  ;koopa shell frame 1 (rightsideup)
