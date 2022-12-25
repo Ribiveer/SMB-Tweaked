@@ -4386,11 +4386,6 @@ CheckForJumping:
 NoJump: jmp X_Physics             ;otherwise, jump to something else
 
 ProcJumping:
-      .IF TWEAK_FIX_CROUCHING
-           lda CrouchingFlag
-           and SwimmingFlag
-           bne NoJump
-      .ENDIF
            lda Player_State           ;check player state
            beq InitJS                 ;if on the ground, branch
            lda SwimmingFlag           ;if swimming flag not set, jump to do something else
@@ -4446,6 +4441,10 @@ GetYPhy:   lda JumpMForceData,y       ;store appropriate jump/swim
 .ENDIF
            lda SwimmingFlag           ;if swimming flag disabled, branch
            beq PJumpSnd
+       .IF TWEAK_FIX_CROUCHING
+           lda #$00
+           sta CrouchingFlag
+      .ENDIF
 PStompSnd: lda #Sfx_EnemyStomp        ;load swim/goomba stomp sound into
            sta Square1SoundQueue      ;square 1's sfx queue
            lda Player_Y_Position
