@@ -586,7 +586,11 @@ EndChkBButton: lda SavedJoypad1Bits
                beq EndExitTwo             ;branch to leave if not
                lda #$01                   ;otherwise set world selection flag
                sta WorldSelectEnableFlag
+            .IF TWEAK_FIX_LIVES
+               lda #$00
+            .ELSE
                lda #$ff                   ;remove onscreen player's lives
+            .ENDIF
                sta NumberofLives
                jsr TerminateGame          ;do sub to continue other player or end game
 EndExitTwo:    rts                        ;leave
@@ -728,11 +732,22 @@ SetupNumSpr:  lda FloateyNum_Y_Pos,x       ;get vertical coordinate
 AddLife:
             lda #Sfx_ExtraLife
             sta Square2SoundQueue        ;play 1-up sound
+      .IF TWEAK_FIX_LIVES_99 + TWEAK_FIX_LIVES_CROWNS
             lda NumberofLives
-            cmp #$62                     ;if player has 99 lives
-            beq HitLiveCap               ;Do not increment live counter
+      .IF TWEAK_FIX_LIVES_99
+            cmp #99                      ;if player has 99 lives
+      .ELSEIF TWEAK_FIX_LIVES_CROWNS
+            cmp #110                     ;if the player has 👑👑 lives, which is technically 110
+      .ENDIF
+            bcs HitLifeCap               ;Do not increment life counter
             inc NumberofLives            ;give player one extra life (1-up)
-HitLiveCap: rts
+HitLifeCap: rts
+      .ELSEIF TWEAK_FIX_LIVES_255
+            inc NumberofLives            ;increment the life counter
+            bne LifesGood                ;if not overflowed, we're good
+            dec NumberofLives            ;otherwise, go back down again
+LifesGood:  rts
+      .ENDIF
 .ENDIF
 
 ;-------------------------------------------------------------------------------------
@@ -812,12 +827,12 @@ BackgroundColors:
       .db $0f, $22, $0f, $0f ;used by background color control if set
 
 PlayerColors:
-.IF TWEAK_SMB_DELUXE_LUIGI_PALETTE
+.IF TWEAK_LUIGI_PALETTE_SMB_DELUXE
       .db $22, $16, $27, $18 ;mario's colors
       .db $22, $1a, $27, $18 ;luigi's colors
       .db $22, $37, $27, $16 ;fiery mario
       .db $22, $30, $27, $19 ;fiery luigi
-.ELSEIF TWEAK_SMM2_LUIGI_PALETTE
+.ELSEIF TWEAK_LUIGI_PALETTE_SMM2
       .db $22, $16, $27, $18 ;mario's colors
       .db $22, $30, $27, $19 ;luigi's colors
       .db $22, $37, $27, $16 ;fiery mario
@@ -837,7 +852,7 @@ NoBGColor: inc ScreenRoutineTask     ;increment to next subtask and plod on thro
       
 GetPlayerColors:
                ldx VRAM_Buffer1_Offset  ;get current buffer offset
-            .IF TWEAK_SMB_DELUXE_LUIGI_PALETTE + TWEAK_SMM2_LUIGI_PALETTE
+            .IF TWEAK_LUIGI_PALETTE
                lda PlayerStatus         ;check player status
                and #$02                 ;we only care if the player is firey, which is in bit 1.
                ora CurrentPlayer        ;add the current player in bit 0.
@@ -1071,25 +1086,83 @@ EndGameText:   lda #$00                 ;put null terminator at end
                bcs PrintWarpZoneNumbers
                dex                      ;are we printing the world/lives display?
                bne CheckPlayerName      ;if not, branch to check player's name
+            .IF TWEAK_FIX_LIVES_99
                lda NumberofLives        ;otherwise, check number of lives
-               clc                      ;and increment by one for display
-               adc #$01
-            .IF TWEAK_FIX_LIVES
                ldy #$00
-LivesLoop:     cmp #10                  ;more than 9 lives in y?
+LivesLoop:     cmp #10                  ;more than 9 lives in a?
                bcc PutLives
                sbc #10                  ;if so, subtract 10 and
                iny                      ;increment the left digit
+            .IF TWEAK_FIX_LIVES_99_NO_LEADING   
                sty VRAM_Buffer1+7  
+            .ENDIF
                bne LivesLoop 
+PutLives:   .IF TWEAK_FIX_LIVES_99_LEADING   
+               sty VRAM_Buffer1+7  
+            .ENDIF
+               sta VRAM_Buffer1+8
+            .ELSEIF TWEAK_FIX_LIVES_255
+               stx VRAM_Buffer1+6	    ;initialise numbers for the life counter to 0
+               stx VRAM_Buffer1+7
+               LDA NumberofLives	    ;load the number of lives to our accumulator: we're gonna take it for a ride
+LivesLoop:
+               cmp #100									 
+               bcc LivesBelowHundred    ;if our lives are below 100, skip ahead
+               sbc #100			    ;otherwise, subtract 100 
+               inc VRAM_Buffer1+6	    ;and increment the 100's digit
+               bne LivesLoop
+LivesBelowHundred:
+               cmp #10
+               bcc LivesBelowTen	    ;if our lives are below 10, skip ahead
+               sbc #10			    ;otherwise, subtract 10 
+               inc VRAM_Buffer1+7	    ;and increment the 10's digit
+               bne LivesBelowHundred
+LivesBelowTen:
+               sta VRAM_Buffer1+8	    ;finally, we store the remainder in the 1's digit
+            .IF TWEAK_FIX_LIVES_255_NO_LEADING
+DitchDigit:
+               lda VRAM_Buffer1+6,x	    ;if our digit is not zero
+               bne KeepDigits		    ;then we can stop removing leading zeros
+               lda #$24			    ;otherwise, overwrite this zero with an empty space
+               sta VRAM_Buffer1+6,x
+               inx                      ;increase our checking digit
+               cpx #02                  ;if we're not on our 1's, we can still ditch digits
+               bne DitchDigit
+KeepDigits:
+            .ENDIF
+            .ELSEIF TWEAK_FIX_LIVES_CROWNS
+               lda NumberofLives        ;otherwise, check number of lives
+               ldy #$00
+LivesLoop:     cmp #10                  ;more than 9 lives in a?
+               bcc PutLives
+               sbc #10                  ;if so, subtract 10 and
+               tax
+               iny                      ;increment the left digit
+               bne LivesLoop 
+PutLives:      cpy #10                  ;check if the 10's digit is 10
+               bcc NoCrown              ;if not, we did our job
+               cpy #11                  ;check if the 10's digit is 11 instead
+               ldy #$ba
+               sty VRAM_Buffer1+29
+               ldy #$9f                 ;otherwise, the 10's digit is a crown
+               bcc NoCrown              ;if not, we did our job
+               ldx #$fa
+               stx VRAM_Buffer1+29
+               ldx #$9f                 ;now also the 1's digit is a crown!
+NoCrown:  
+               sty VRAM_Buffer1+7
+               stx VRAM_Buffer1+8
             .ELSE
+               lda NumberofLives        ;otherwise, check number of lives
+               clc                      ;and increment by one for display
+               adc #$01
                cmp #10                  ;more than 9 lives?
                bcc PutLives
                sbc #10                  ;if so, subtract 10 and put a crown tile
                ldy #$9f                 ;next to the difference...strange things happen if
                sty VRAM_Buffer1+7       ;the number of lives exceeds 19
-            .ENDIF
 PutLives:      sta VRAM_Buffer1+8
+            .ENDIF
                ldy WorldNumber          ;write world and level numbers (incremented for display)
                iny                      ;to the buffer in the spaces surrounding the dash
                sty VRAM_Buffer1+19
@@ -1839,7 +1912,11 @@ PrimaryGameSetup:
       lda #$01
       sta FetchNewGameTimerFlag   ;set flag to load game timer from header
       sta PlayerSize              ;set player's size to small
+.IF TWEAK_FIX_LIVES
+      lda #110
+.ELSE
       lda #$02
+.ENDIF
       sta NumberofLives           ;give each player three lives
       sta OffScr_NumberofLives
     
@@ -2048,7 +2125,11 @@ PlayerLoseLife:
              lda #Silence             ;silence music
              sta EventMusicQueue
 NoDeathSil:  dec NumberofLives        ;take one life from player
+      .IF TWEAK_FIX_LIVES
+             bne StillInGame          ;if player still has lives, branch
+      .ELSE
              bpl StillInGame          ;if player still has lives, branch
+      .ENDIF
              lda #$00
              sta OperMode_Task        ;initialize mode task,
              lda #GameOverModeValue   ;switch to game over mode
@@ -2146,7 +2227,11 @@ TransposePlayers:
            lda NumberOfPlayers       ;if only a 1 player game, leave
            beq ExTrans
            lda OffScr_NumberofLives  ;does offscreen player have any lives left?
+      .IF TWEAK_FIX_LIVES
+           beq ExTrans
+      .ELSE
            bmi ExTrans               ;branch if not
+      .ENDIF
            lda CurrentPlayer         ;invert bit to update
            eor #%00000001            ;which player is on the screen
            sta CurrentPlayer
