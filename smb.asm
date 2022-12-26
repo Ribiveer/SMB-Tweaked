@@ -1133,10 +1133,10 @@ KeepDigits:
             .ELSEIF TWEAK_FIX_LIVES_CROWNS
                lda NumberofLives        ;otherwise, check number of lives
                ldy #$00
-LivesLoop:     cmp #10                  ;more than 9 lives in a?
+LivesLoop:     tax
+               cmp #10                  ;more than 9 lives in a?
                bcc PutLives
                sbc #10                  ;if so, subtract 10 and
-               tax
                iny                      ;increment the left digit
                bne LivesLoop 
 PutLives:      cpy #10                  ;check if the 10's digit is 10
@@ -1150,6 +1150,12 @@ PutLives:      cpy #10                  ;check if the 10's digit is 10
                stx VRAM_Buffer1+29
                ldx #$9f                 ;now also the 1's digit is a crown!
 NoCrown:  
+            .IF TWEAK_FIX_LIVES_CROWNS_NO_LEADING
+               cpy #$00
+               bne KeepDigits
+               ldy #$24
+KeepDigits:
+            .ENDIF
                sty VRAM_Buffer1+7
                stx VRAM_Buffer1+8
             .ELSE
@@ -1913,7 +1919,7 @@ PrimaryGameSetup:
       sta FetchNewGameTimerFlag   ;set flag to load game timer from header
       sta PlayerSize              ;set player's size to small
 .IF TWEAK_FIX_LIVES
-      lda #110
+      lda #03
 .ELSE
       lda #$02
 .ENDIF
@@ -10710,10 +10716,8 @@ DoFootCheck:
       cmp #$cf                   ;check to see how low player is
       bcs DoPlayerSideCheck      ;if player is too far down on screen, skip all of this
       jsr BlockBufferColli_Feet  ;do player-to-bg collision detection on bottom left of player
-.IF !TWEAK_FIX_INVISIBLE_BLOCK_COLLISION
       jsr CheckForCoinMTiles     ;check to see if player touched coin with their left foot
       bcs AwardTouchedCoin       ;if so, branch to some other part of code
-.ENDIF
       pha                        ;save bottom left metatile to stack
       jsr BlockBufferColli_Feet  ;do player-to-bg collision detection on bottom right of player
       sta $00                    ;save bottom right metatile here

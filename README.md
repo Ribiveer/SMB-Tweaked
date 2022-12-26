@@ -146,7 +146,8 @@ You can choose which type of fix you want! The following Subtweaks are available
 - Lives are now capped at 99, and displayed properly without leading zero.
 - Lives are now capped at 255, and displayed properly with leading zero.
 - Lives are now capped at 255, and displayed properly without leading zero.
-- Lives will seem to go normal until you go past 99, at which point you'll get crowns.
+- Lives will seem to go normal with a leading zero until you go past 99, at which point you'll get crowns. Lives are capped at 👑👑.
+- Lives will seem to go normal without a leading zero until you go past 99, at which point you'll get crowns. Lives are capped at 👑👑.
 
 #### Fix powerup momentum
 
