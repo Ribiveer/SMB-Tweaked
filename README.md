@@ -126,9 +126,12 @@ Hammers now travel along their arcs when they hit the player. They are only boun
 
 ### Palette changes
 
-#### Super Mario Bros. Deluxe Luigi palette & Super Mario Maker 2 Luigi palette
+#### Distinct Luigi palette
 
-Of these two Tweaks, you should select only one! These change Luigi's palette so he has a distinct Fire Flower palette. Miraculously, this Tweak saves bytes!
+These two tweaks change Luigi's palette so he has a distinct Fire Flower palette. Miraculously, this Tweak saves bytes!
+The following Subtweaks are available:
+- Super Mario Bros. Deluxe Luigi
+- Super Mario Maker 2 Luigi
 
 #### Green Cheep Cheeps
 
@@ -138,7 +141,12 @@ Makes the Cheep Cheeps underwater green. They got their liveliness back!
 
 #### Fix lives
 
-Lives are now capped at 99, and displayed properly.
+You can choose which type of fix you want! The following Subtweaks are available:
+- Lives are now capped at 99, and displayed properly with leading zero.
+- Lives are now capped at 99, and displayed properly without leading zero.
+- Lives are now capped at 255, and displayed properly with leading zero.
+- Lives are now capped at 255, and displayed properly without leading zero.
+- Lives will seem to go normal until you go past 99, at which point you'll get crowns.
 
 #### Fix powerup momentum
 
@@ -207,3 +215,7 @@ Reduces the possibility for "moustache jumps". While I'm personally not fond of 
 #### Enlarge hitboxes
 
 Makes hitboxes for certain enemies bigger. While I'm personally not fond of this, other people might disagree.
+
+### Known bugs
+
+- Red Paratroopas suddenly start flying backwards if you jump on them! This only happens when the modern enemy movement Tweak is applied.

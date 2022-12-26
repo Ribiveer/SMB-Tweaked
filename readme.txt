@@ -21,7 +21,7 @@ Here is a list of the Tweaks made:
 ### Fixes ###
 
 - Fix World -1: The scroll locking now works as intended. Also, you'll be in for a surprise if you still manage to pull off the glitch!
-- Fix lives: Lives are now capped at 99, and displayed properly.
+- Fix lives: Lives are now displayed properly. If you get more than 99 lives, you'll get crowns for lives.
 - Fix Spiny velocity: Lakitu now throws his Spinies with the velocity the designers intended.
 - Fix crouching: Crouching is improved, removing some glitches like the infamous "getting stuck in the water levels" glitch.
 - Fix powerup momentum: When you collect a power-up while jumping, you'll keep your vertical speed now. This sadly also removes the power up jump glitch.
