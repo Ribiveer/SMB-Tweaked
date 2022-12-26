@@ -31,6 +31,7 @@ Here is a list of the Tweaks made:
 - Fix Spiny block defeating: When the player bumps a block with a Spiny on it, the Spiny will now be defeated.
 - Fix the star power-up jumping out of the block: When a star comes out of a block, it will now always jump out, instead of sometimes falling out.
 - Fix small Mario's reversed walk cycle: Small Mario now doesn't moonwalk anymore.
+- Fix the collision of invisible blocks.
 
 ### Changes from the PAL (European) version of the game ###
 

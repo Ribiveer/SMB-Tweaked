@@ -5505,7 +5505,7 @@ NoZSup: ldx ObjectOffset          ;get enemy object buffer offset
 
 ;-------------------------------------------------------------------------------------
 
-SetupPowerUp: ;TO-DO: star auto jump
+SetupPowerUp:
            lda #PowerUpObject        ;load power-up identifier into
            sta Enemy_ID+5            ;special use slot of enemy object buffer
            lda Block_PageLoc,x       ;store page location of block object
@@ -9629,7 +9629,7 @@ ChkOtherEnemies:
 .ENDIF
 
 ShellOrBlockDefeat:
-      lda Enemy_ID,x            ;check for piranha plant TO-DO: modern scoring
+      lda Enemy_ID,x            ;check for piranha plant
       cmp #PiranhaPlant
       bne StnE                  ;branch if not found
       lda Enemy_Y_Position,x
@@ -9648,7 +9648,7 @@ StnE: jsr ChkToStunEnemies      ;do yet another sub
       lda #$06                  ;award 1000 points for hammer bro
 
 GoombaPoints:
-      cpy #Goomba               ;check for goomba TO-DO: modern scoring
+      cpy #Goomba               ;check for goomba
       bne EnemySmackScore       ;branch if not found
       lda #$01                  ;award 100 points for goomba
 
@@ -10625,21 +10625,38 @@ DoFootCheck:
       cmp #$cf                   ;check to see how low player is
       bcs DoPlayerSideCheck      ;if player is too far down on screen, skip all of this
       jsr BlockBufferColli_Feet  ;do player-to-bg collision detection on bottom left of player
+.IF !TWEAK_FIX_INVISIBLE_BLOCK_COLLISION
       jsr CheckForCoinMTiles     ;check to see if player touched coin with their left foot
       bcs AwardTouchedCoin       ;if so, branch to some other part of code
+.ENDIF
       pha                        ;save bottom left metatile to stack
       jsr BlockBufferColli_Feet  ;do player-to-bg collision detection on bottom right of player
       sta $00                    ;save bottom right metatile here
       pla
       sta $01                    ;pull bottom left metatile and save here
-      bne ChkFootMTile           ;if anything here, skip this part
+.IF TWEAK_FIX_INVISIBLE_BLOCK_COLLISION
+      beq SkipFoot               ;if nothing here, skip this foot.
+      jsr ChkInvisibleMTiles     ;do sub to check for hidden coin or 1-up blocks
+      beq SkipFoot               ;if either found, skip this foot.
+.ENDIF
+      bne ChkFootMTile           ;if anything here, we have gotten a collision!
+SkipFoot:
       lda $00                    ;otherwise check for anything in bottom right metatile
       beq DoPlayerSideCheck      ;and skip ahead if not
+.IF TWEAK_FIX_INVISIBLE_BLOCK_COLLISION
+      jsr ChkInvisibleMTiles     ;do sub to check for hidden coin or 1-up blocks
+      beq DoPlayerSideCheck      ;if either found, skip this foot as well
+.ENDIF
       jsr CheckForCoinMTiles     ;check to see if player touched coin with their right foot
-      bcc ChkFootMTile           ;if not, skip unconditional jump and continue code
+      bcc ChkFootMTile           ;if not, skip unconditional jump and continue code to collision handling
 
 AwardTouchedCoin:
       jmp HandleCoinMetatile     ;follow the code to erase coin and award to player 1 coin
+
+.IF TWEAK_FIX_INVISIBLE_BLOCK_COLLISION
+LeaveFootChecks:
+      rts
+.ENDIF
 
 ChkFootMTile:
           jsr CheckForClimbMTiles    ;check to see if player landed on climbable metatiles
@@ -10649,8 +10666,11 @@ ChkFootMTile:
           cmp #$c5
           bne ContChk                ;if player did not touch axe, skip ahead
           jmp HandleAxeMetatile      ;otherwise jump to set modes of operation
-ContChk:  jsr ChkInvisibleMTiles     ;do sub to check for hidden coin or 1-up blocks
+ContChk:
+.IF !TWEAK_FIX_INVISIBLE_BLOCK_COLLISION
+          jsr ChkInvisibleMTiles     ;do sub to check for hidden coin or 1-up blocks
           beq DoPlayerSideCheck      ;if either found, branch
+.ENDIF
           ldy JumpspringAnimCtrl     ;if jumpspring animating right now,
           bne InitSteP               ;branch ahead
           ldy $04                    ;check lower nybble of vertical coordinate returned
@@ -10711,7 +10731,7 @@ BHalf: ldy $eb                   ;load block adder offset
        bne SideCheckLoop         ;run code until both sides of player are checked
 ExSCH: rts                       ;leave
 
-CheckSideMTiles: ;To-do: make invisible block collision work better
+CheckSideMTiles:
           jsr ChkInvisibleMTiles     ;check for hidden or coin 1-up blocks
           beq ExCSM                  ;branch to leave if either found
           jsr CheckForClimbMTiles    ;check for climbable metatiles
@@ -11711,6 +11731,12 @@ CollisionFound:
       rts
 
 ;-------------------------------------------------------------------------------------
+TempModifiedYCoord = $02
+TempMetatile = $03
+TempBlockBufferAddressOffset = $04
+TempLowNybbleCoord = $04
+TempModifiedXCoord = $05
+TempBlockBufferAddress = $06
 ;$02 - modified y coordinate
 ;$03 - stores metatile involved in block buffer collisions
 ;$04 - comes in with offset to block buffer adder data, goes out with low nybble x/y coordinate
@@ -11776,41 +11802,41 @@ BlockBufferColli_Side:
 
 BlockBufferCollision:
        pha                         ;save contents of A to stack
-       sty $04                     ;save contents of Y here
+       sty TempBlockBufferAddressOffset       ;save contents of Y here
        lda BlockBuffer_X_Adder,y   ;add horizontal coordinate
        clc                         ;of object to value obtained using Y as offset
        adc SprObject_X_Position,x
-       sta $05                     ;store here
+       sta TempModifiedXCoord      ;store here
        lda SprObject_PageLoc,x
        adc #$00                    ;add carry to page location
        and #$01                    ;get LSB, mask out all other bits
        lsr                         ;move to carry
-       ora $05                     ;get stored value
+       ora TempModifiedXCoord      ;get stored value
        ror                         ;rotate carry to MSB of A
        lsr                         ;and effectively move high nybble to
        lsr                         ;lower, LSB which became MSB will be
        lsr                         ;d4 at this point
        jsr GetBlockBufferAddr      ;get address of block buffer into $06, $07
-       ldy $04                     ;get old contents of Y
+       ldy TempBlockBufferAddressOffset ;get old contents of Y
        lda SprObject_Y_Position,x  ;get vertical coordinate of object
        clc
        adc BlockBuffer_Y_Adder,y   ;add it to value obtained using Y as offset
        and #%11110000              ;mask out low nybble
        sec
        sbc #$20                    ;subtract 32 pixels for the status bar
-       sta $02                     ;store result here
+       sta TempModifiedYCoord      ;store result here
        tay                         ;use as offset for block buffer
-       lda ($06),y                 ;check current content of block buffer
-       sta $03                     ;and store here
-       ldy $04                     ;get old contents of Y again
+       lda (TempBlockBufferAddress),y                 ;check current content of block buffer
+       sta TempMetatile            ;and store here
+       ldy TempBlockBufferAddressOffset ;get old contents of Y again
        pla                         ;pull A from stack
        bne RetXC                   ;if A = 1, branch
        lda SprObject_Y_Position,x  ;if A = 0, load vertical coordinate
        jmp RetYC                   ;and jump
 RetXC: lda SprObject_X_Position,x  ;otherwise load horizontal coordinate
 RetYC: and #%00001111              ;and mask out high nybble
-       sta $04                     ;store masked out result here
-       lda $03                     ;get saved content of block buffer
+       sta TempBlockBufferAddressOffset ;store masked out result here
+       lda TempMetatile            ;get saved content of block buffer
        rts                         ;and leave
 
 ;-------------------------------------------------------------------------------------

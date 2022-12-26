@@ -162,6 +162,10 @@ Swimming while crouching will now properly make the player stop crouching, so th
 
 Lakitu now throws his Spinies with the velocity the designers intended.
 
+#### Fix hidden block collisions
+
+You can now run over their 1-tile gaps, and they don't allow you to phase through blocks anymore.
+
 #### Fix starting input
 
 When the player holds A or B while entering a level or exiting a warp pipe, the player will no lunger jump or fire a fireball. This removes the skating glitch as well.

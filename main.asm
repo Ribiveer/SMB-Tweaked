@@ -1,5 +1,5 @@
 ;Original disassembly by doppelganger (doppelheathen@gmail.com)
-;Tweaks by Ribiveer (smbtweaks@ribiveer.com)
+;Tweaks by Ribiveer (smbtweaks@ribiveer.com)enemy_ID
 
 TWEAK_SMALL_OPTIMISATIONS EQU 1
 
@@ -34,6 +34,7 @@ TWEAK_FIX_STAR_FLAGPOLE EQU 1
 TWEAK_FIX_WARP_ZONE_SCROLL EQU 1
 TWEAK_FIX_CROUCHING EQU 1
 TWEAK_FIX_SPINY_VELOCITY EQU 1
+TWEAK_FIX_INVISIBLE_BLOCK_COLLISION EQU 1
 TWEAK_FIX_STARTING_INPUT EQU 1
 TWEAK_FIX_SMALL_CASTLES EQU 1
 TWEAK_FIX_SPINY_BLOCK_HIT EQU 1
