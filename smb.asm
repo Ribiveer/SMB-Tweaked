@@ -10158,12 +10158,17 @@ ChkForDemoteKoopa:
       jsr SetupFloateyNumber
 .ENDIF
       jsr InitVStf               ;nullify physics-related thing and vertical speed
-.IF TWEAK_MODERN_ENEMY_MOVEMENT    
-      inc StompTimer             ;make sure we hear the stomp sound.
-.ELSE
+.IF !TWEAK_MODERN_ENEMY_MOVEMENT
       jsr EnemyFacePlayer        ;turn enemy around if necessary
+.ELSE
+      lda Enemy_MovingDir
+      lsr                        ;flip the moving direction
+      dey                        ;then decrement it for offset purposes
+.ENDIF
       lda DemotedKoopaXSpdData,y
       sta Enemy_X_Speed,x        ;set appropriate moving speed based on direction
+.IF TWEAK_MODERN_ENEMY_BOUNCE
+      inc StompTimer             ;make sure we hear the stomp sound.
 .ENDIF
       jmp SBnce                  ;then bounce the player
 
