@@ -216,7 +216,3 @@ Reduces the possibility for "moustache jumps". While I'm personally not fond of 
 #### Enlarge hitboxes
 
 Makes hitboxes for certain enemies bigger. While I'm personally not fond of this, other people might disagree.
-
-### Known bugs
-
-- Red Paratroopas suddenly start flying backwards if you jump on them! This only happens when the modern enemy movement Tweak is applied.
