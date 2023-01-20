@@ -1914,16 +1914,27 @@ DoneInitArea:  lda #Silence             ;silence music
 
 ;-------------------------------------------------------------------------------------
 
+.IF TWEAK_START_WITH_FIVE_LIVES
+      .IF TWEAK_FIX_LIVES
+            StartingLives = $05
+      .ELSE
+            StartingLives = $04
+      .ENDIF
+.ELSE
+      .IF TWEAK_FIX_LIVES
+            StartingLives = $03
+      .ELSE
+            StartingLives = $02
+      .ENDIF
+.ENDIF
+
+
 PrimaryGameSetup:
       lda #$01
       sta FetchNewGameTimerFlag   ;set flag to load game timer from header
       sta PlayerSize              ;set player's size to small
-.IF TWEAK_FIX_LIVES
-      lda #03
-.ELSE
-      lda #$02
-.ENDIF
-      sta NumberofLives           ;give each player three lives
+      lda #StartingLives
+      sta NumberofLives           ;give each player their lives
       sta OffScr_NumberofLives
     
 

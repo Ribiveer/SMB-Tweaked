@@ -124,6 +124,10 @@ In the original game, only Player 1 can pause the game, since the Famicom only g
 
 Hammers now travel along their arcs when they hit the player. They are only bounced back when the player is invincible.
 
+#### Start With Five Lives
+
+Mario and Luigi now start with five lives, instead of three. This change resembles Super Mario All-Stars.
+
 ### Palette changes
 
 #### Distinct Luigi palette
