@@ -9814,6 +9814,17 @@ HandlePowerUpCollision:
       jsr EraseEnemyObject    ;erase the power-up object
       lda #PowerUpFloatey
       jsr SetupFloateyNumber  ;award 1000 points to player by default
+.IF TWEAK_FIX_1UP_SOUND
+      lda PowerUpType         ;check power-up type
+      cmp #$03
+      beq SetFor1Up           ;if 1-up mushroom, branch
+      pha
+      lda #Sfx_PowerUpGrab
+      sta Square2SoundQueue   ;play the power-up sound
+      pla
+      cmp #$02
+      bcc Shroom_Flower_PUp   ;if mushroom or fire flower, branch
+.ELSE
       lda #Sfx_PowerUpGrab
       sta Square2SoundQueue   ;play the power-up sound
       lda PowerUpType         ;check power-up type
@@ -9821,6 +9832,7 @@ HandlePowerUpCollision:
       bcc Shroom_Flower_PUp   ;if mushroom or fire flower, branch
       cmp #$03
       beq SetFor1Up           ;if 1-up mushroom, branch
+.ENDIF
       lda #$23                ;otherwise set star mario invincibility
       sta StarInvincibleTimer ;timer, and load the star mario music
       lda #StarPowerMusic     ;into the area music queue, then leave

@@ -199,6 +199,10 @@ When a star comes out of a block, it will now always jump out, instead of someti
 
 Small Mario now doesn't moonwalk anymore.
 
+#### Fix hiccup in 1-UP sound
+
+The 1-UP sound now doesn't play a frame of the power-up sound anymore.
+
 ### Changes from the PAL (European) version of the game.
 
 #### Optimise Cheep Cheeps
